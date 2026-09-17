@@ -37,11 +37,13 @@ fun HomeScreen(
     downloadStates: Map<String, DownloadProgress>,
     favoriteIds: Set<String>,
     isLoading: Boolean,
+    hasCustomTastes: Boolean = false,
     onTrackClick: (Track, List<Track>) -> Unit,
     onDownloadClick: (Track) -> Unit,
     onFavoriteClick: (Track) -> Unit,
     onNavigateToSearch: () -> Unit,
-    onNavigateToImport: () -> Unit
+    onNavigateToImport: () -> Unit,
+    onOpenTastePicker: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -50,34 +52,60 @@ fun HomeScreen(
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
-        // App Header with Crystal Logo and iOS Large Title
+        // App Header with Crystal Logo and Liquid Glass Taste Button
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_crystall_logo),
-                    contentDescription = "Crystall Logo",
-                    modifier = Modifier.size(38.dp)
-                )
-                Spacer(modifier = Modifier.width(14.dp))
-                Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_crystall_logo),
+                        contentDescription = "Crystall Logo",
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Слушать сейчас",
                         color = TextPrimary,
-                        fontSize = 28.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
                     )
-                    Text(
-                        text = "Crystall Music • iOS Edition",
-                        color = IosTextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                }
+
+                // Liquid Glass Taste Button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0x18FFFFFF))
+                        .border(1.dp, Color(0x30FFFFFF), RoundedCornerShape(20.dp))
+                        .clickable { onOpenTastePicker() }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Taste",
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = "Мой вкус",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -102,7 +130,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Поиск по трекам YouTube Music...",
+                        text = "Поиск треков и артистов...",
                         color = IosTextSecondary,
                         fontSize = 14.sp
                     )
@@ -188,7 +216,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Популярные треки",
+                    text = if (hasCustomTastes) "Рекомендации для вас" else "Популярные треки",
                     color = TextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold

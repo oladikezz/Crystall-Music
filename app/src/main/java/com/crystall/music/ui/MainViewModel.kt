@@ -8,12 +8,15 @@ import com.crystall.music.data.model.AudioSource
 import com.crystall.music.data.model.Playlist
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.MusicDownloadManager
+import com.crystall.music.engine.LyricsEngine
+import com.crystall.music.engine.LyricsResult
 import com.crystall.music.engine.ResolveResult
 import com.crystall.music.engine.SoundCloudEngine
 import com.crystall.music.engine.UniversalMusicResolver
 import com.crystall.music.engine.YouTubeEngine
 import com.crystall.music.player.MusicPlayerManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,15 +67,80 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isFullPlayerVisible = MutableStateFlow(false)
     val isFullPlayerVisible: StateFlow<Boolean> = _isFullPlayerVisible.asStateFlow()
 
+    private val _favoriteArtists = MutableStateFlow<List<String>>(emptyList())
+    val favoriteArtists: StateFlow<List<String>> = _favoriteArtists.asStateFlow()
+
+    private val _showTastePicker = MutableStateFlow(false)
+    val showTastePicker: StateFlow<Boolean> = _showTastePicker.asStateFlow()
+
+    private val _currentLyrics = MutableStateFlow<LyricsResult?>(null)
+    val currentLyrics: StateFlow<LyricsResult?> = _currentLyrics.asStateFlow()
+
+    private val _isLoadingLyrics = MutableStateFlow(false)
+    val isLoadingLyrics: StateFlow<Boolean> = _isLoadingLyrics.asStateFlow()
+
     private val _selectedPlaylist = MutableStateFlow<Playlist?>(null)
     val selectedPlaylist: StateFlow<Playlist?> = _selectedPlaylist.asStateFlow()
 
     private val _selectedPlaylistTracks = MutableStateFlow<List<Track>>(emptyList())
     val selectedPlaylistTracks: StateFlow<List<Track>> = _selectedPlaylistTracks.asStateFlow()
 
+    private var lyricsJob: Job? = null
+
     init {
         refreshLibraryData()
+        loadFavoriteArtists()
         loadTrendingTracks()
+        observeCurrentTrackForLyrics()
+    }
+
+    private fun loadFavoriteArtists() {
+        val artists = dbHelper.getFavoriteArtists()
+        _favoriteArtists.value = artists
+        if (!dbHelper.hasCompletedTasteOnboarding()) {
+            _showTastePicker.value = true
+        }
+    }
+
+    fun openTastePicker() {
+        _showTastePicker.value = true
+    }
+
+    fun dismissTastePicker(skipped: Boolean = false) {
+        _showTastePicker.value = false
+        if (skipped) {
+            dbHelper.setTasteOnboardingCompleted(true)
+        }
+    }
+
+    fun saveFavoriteArtists(artists: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.saveFavoriteArtists(artists)
+            dbHelper.setTasteOnboardingCompleted(true)
+            _favoriteArtists.value = artists
+            _showTastePicker.value = false
+            loadTrendingTracks()
+        }
+    }
+
+    private fun observeCurrentTrackForLyrics() {
+        viewModelScope.launch {
+            playerManager.currentTrack.collect { track ->
+                lyricsJob?.cancel()
+                if (track == null) {
+                    _currentLyrics.value = null
+                    _isLoadingLyrics.value = false
+                    return@collect
+                }
+                _isLoadingLyrics.value = true
+                _currentLyrics.value = null
+                lyricsJob = launch(Dispatchers.IO) {
+                    val result = LyricsEngine.getLyrics(track.title, track.artist, track.id)
+                    _currentLyrics.value = result
+                    _isLoadingLyrics.value = false
+                }
+            }
+        }
     }
 
     fun setTab(tab: Int) {
@@ -102,11 +170,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun loadTrendingTracks() {
+    fun loadTrendingTracks() {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingTrending.value = true
-            val ytTrending = YouTubeEngine.getTrendingMusic()
-            _trendingTracks.value = ytTrending
+            val favs = _favoriteArtists.value
+            val tracks = if (favs.isNotEmpty()) {
+                YouTubeEngine.getPersonalizedRecommendations(favs)
+            } else {
+                YouTubeEngine.getTrendingMusic()
+            }
+            _trendingTracks.value = tracks
             _isLoadingTrending.value = false
         }
     }

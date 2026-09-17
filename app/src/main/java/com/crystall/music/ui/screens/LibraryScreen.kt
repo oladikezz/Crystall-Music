@@ -125,7 +125,7 @@ fun LibraryScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Скачивайте музыку с YouTube или SoundCloud и слушайте её без подключения к интернету",
+                                text = "Скачивайте треки и слушайте их без подключения к интернету",
                                 color = TextMuted,
                                 fontSize = 13.sp,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center

@@ -84,10 +84,40 @@ object YouTubeEngine {
 
     suspend fun getVisitorData(): String = ensureVisitorAndSts().first
 
-    suspend fun search(query: String): List<Track> = withContext(Dispatchers.IO) {
+    fun upgradeThumbnailUrl(rawUrl: String): String {
+        if (rawUrl.isBlank()) return rawUrl
+        var url = rawUrl
+        if (url.contains("googleusercontent.com") || url.contains("ggpht.com")) {
+            url = url.replace(Regex("=w\\d+-h\\d+[^?&]*"), "=w1200-h1200-l90-rj")
+                .replace(Regex("=s\\d+[^?&]*"), "=s1200")
+        }
+        if (url.contains("i.ytimg.com") || url.contains("img.youtube.com")) {
+            url = url.replace("hqdefault.jpg", "maxresdefault.jpg")
+                .replace(Regex("=w\\d+-h\\d+[^?&]*"), "=w1200-h1200-l90-rj")
+                .replace(Regex("=s\\d+[^?&]*"), "=s1200")
+        }
+        if (url.contains("sndcdn.com")) {
+            url = url.replace("-large.jpg", "-t500x500.jpg")
+        }
+        return url
+    }
+
+    fun isAcceptableTrack(track: Track): Boolean {
+        val t = track.title.lowercase()
+        val a = track.artist.lowercase()
+        if (a in listOf("видео", "различные исполнители", "various artists", "unknown")) {
+            if (track.title.length < 4) return false
+        }
+        if (t.contains("1 hour") || t.contains("10 hours") || t.contains("loop 1 hour") || t.contains("1 час") || t.contains("10 часов")) return false
+        if (t.contains("sound effect") || t.contains("звуковой эффект") || t.contains("bass boosted 1000")) return false
+        return true
+    }
+
+    suspend fun search(query: String, songsOnly: Boolean = true): List<Track> = withContext(Dispatchers.IO) {
         val tracks = mutableListOf<Track>()
         try {
             val visitorId = getVisitorData()
+            val paramsField = if (songsOnly) ",\"params\": \"EgWKAQIIAWoKEAkQChAFEAMQBA%3D%3D\"" else ""
             val jsonPayload = """
                 {
                     "context": {
@@ -100,6 +130,7 @@ object YouTubeEngine {
                         }
                     },
                     "query": ${escapeJson(query)}
+                    $paramsField
                 }
             """.trimIndent()
 
@@ -127,7 +158,11 @@ object YouTubeEngine {
             findJsonObjects(root, "musicResponsiveListItemRenderer", items)
 
             for (item in items) {
-                parseTrackItem(item)?.let { tracks.add(it) }
+                parseTrackItem(item)?.let {
+                    if (isAcceptableTrack(it)) {
+                        tracks.add(it)
+                    }
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -136,8 +171,34 @@ object YouTubeEngine {
     }
 
     suspend fun getTrendingMusic(): List<Track> = withContext(Dispatchers.IO) {
-        val results = search("Топ треки 2024")
-        if (results.isNotEmpty()) results else search("Popular Music")
+        val results = search("Топ чарт", songsOnly = true)
+        if (results.size >= 8) results else search("Топ хиты", songsOnly = true)
+    }
+
+    suspend fun getPersonalizedRecommendations(favoriteArtists: List<String>): List<Track> = withContext(Dispatchers.IO) {
+        if (favoriteArtists.isEmpty()) {
+            return@withContext getTrendingMusic()
+        }
+        val combined = mutableListOf<Track>()
+        val seenIds = mutableSetOf<String>()
+        val topArtists = favoriteArtists.take(5)
+        for (artist in topArtists) {
+            val hits = search(artist, songsOnly = true).take(6)
+            for (h in hits) {
+                if (seenIds.add(h.id)) {
+                    combined.add(h)
+                }
+            }
+        }
+        if (combined.size < 10) {
+            val trending = getTrendingMusic()
+            for (t in trending) {
+                if (seenIds.add(t.id)) {
+                    combined.add(t)
+                }
+            }
+        }
+        combined
     }
 
     suspend fun resolvePlaylist(urlOrId: String): Pair<Playlist, List<Track>>? = withContext(Dispatchers.IO) {
@@ -550,10 +611,10 @@ object YouTubeEngine {
 
             return Track(
                 id = videoId,
-                title = title,
-                artist = artist,
+                title = title.trim(),
+                artist = artist.trim(),
                 durationMs = durationMs,
-                coverUrl = coverUrl,
+                coverUrl = upgradeThumbnailUrl(coverUrl),
                 source = AudioSource.YOUTUBE
             )
         } catch (e: Exception) {

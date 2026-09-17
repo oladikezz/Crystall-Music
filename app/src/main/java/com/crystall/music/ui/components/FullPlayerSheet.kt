@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -36,6 +39,8 @@ import coil.compose.AsyncImage
 import com.crystall.music.data.model.AudioSource
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
+import com.crystall.music.engine.LyricsResult
+import com.crystall.music.engine.YouTubeEngine
 import com.crystall.music.ui.theme.*
 import kotlin.math.sin
 
@@ -52,6 +57,8 @@ fun FullPlayerSheet(
     repeatMode: Int,
     queue: List<Track>,
     downloadProgress: DownloadProgress?,
+    lyricsResult: LyricsResult? = null,
+    isLoadingLyrics: Boolean = false,
     onDismiss: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
@@ -65,6 +72,11 @@ fun FullPlayerSheet(
     onStopPlayback: () -> Unit = {}
 ) {
     var showQueueSheet by remember { mutableStateOf(false) }
+    var showLyrics by remember { mutableStateOf(false) }
+
+    val upgradedCoverUrl = remember(track.coverUrl) {
+        YouTubeEngine.upgradeThumbnailUrl(track.coverUrl)
+    }
 
     Box(
         modifier = Modifier
@@ -98,7 +110,7 @@ fun FullPlayerSheet(
             )
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Top App Bar
+            // Minimal Liquid Glass Top App Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -115,72 +127,188 @@ fun FullPlayerSheet(
                     )
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "СЕЙЧАС ИГРАЕТ",
-                        color = TextMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
-                    )
-                    Text(
-                        text = when (track.source) {
-                            AudioSource.YOUTUBE -> "YouTube Music"
-                            AudioSource.SOUNDCLOUD -> "SoundCloud"
-                            AudioSource.LOCAL -> "Офлайн аудио"
-                        },
-                        color = when (track.source) {
-                            AudioSource.YOUTUBE -> YouTubeRed
-                            AudioSource.SOUNDCLOUD -> SoundCloudOrange
-                            AudioSource.LOCAL -> GreenSuccess
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                // Minimal glass pill
+                Box(
+                    modifier = Modifier
+                        .width(36.dp)
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x28FFFFFF))
+                )
 
-                IconButton(onClick = { showQueueSheet = true }) {
-                    Icon(
-                        imageVector = Icons.Default.QueueMusic,
-                        contentDescription = "Queue",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Lyrics toggle
+                    IconButton(
+                        onClick = { showLyrics = !showLyrics },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(if (showLyrics) Color(0x33FFFFFF) else Color.Transparent)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FormatQuote,
+                            contentDescription = "Lyrics",
+                            tint = if (showLyrics) Color.White else Color(0x88FFFFFF),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Queue button
+                    IconButton(onClick = { showQueueSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.QueueMusic,
+                            contentDescription = "Queue",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.weight(0.5f))
 
-            // Large Album Artwork with Apple Music Pure Glass Squircle
-            Box(
-                modifier = Modifier
-                    .size(290.dp)
-                    .shadow(32.dp, RoundedCornerShape(32.dp), spotColor = Color.Black.copy(alpha = 0.75f))
-                    .clip(RoundedCornerShape(32.dp))
-                    .background(SurfaceElevated)
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(Color(0x55FFFFFF), Color(0x18FFFFFF))
-                        ),
-                        shape = RoundedCornerShape(32.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (track.coverUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = track.coverUrl,
-                        contentDescription = track.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+            // Interactive Center Area: Artwork OR Synced Lyrics
+            Crossfade(
+                targetState = showLyrics,
+                animationSpec = tween(300),
+                label = "cover_lyrics_crossfade"
+            ) { lyricsActive ->
+                if (lyricsActive) {
+                    // Real-time Synced Karaoke Lyrics View
+                    Box(
+                        modifier = Modifier
+                            .size(300.dp)
+                            .clip(RoundedCornerShape(32.dp))
+                            .background(Color(0x18FFFFFF))
+                            .border(
+                                width = 1.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(Color(0x4DFFFFFF), Color(0x12FFFFFF))
+                                ),
+                                shape = RoundedCornerShape(32.dp)
+                            )
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoadingLyrics) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                color = Color.White,
+                                strokeWidth = 2.5.dp
+                            )
+                        } else if (lyricsResult != null && lyricsResult.syncedLyrics.isNotEmpty()) {
+                            val listState = rememberLazyListState()
+                            val synced = lyricsResult.syncedLyrics
+                            val activeIndex = remember(positionMs, synced) {
+                                val idx = synced.indexOfLast { it.timeMs <= positionMs }
+                                if (idx >= 0) idx else 0
+                            }
+                            LaunchedEffect(activeIndex) {
+                                if (activeIndex in synced.indices) {
+                                    listState.animateScrollToItem(
+                                        index = (activeIndex - 1).coerceAtLeast(0)
+                                    )
+                                }
+                            }
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                contentPadding = PaddingValues(vertical = 36.dp)
+                            ) {
+                                itemsIndexed(synced) { idx, line ->
+                                    val isCurrent = idx == activeIndex
+                                    Text(
+                                        text = line.text,
+                                        color = if (isCurrent) Color.White else Color(0x55FFFFFF),
+                                        fontSize = if (isCurrent) 20.sp else 15.sp,
+                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                onSeekTo(line.timeMs)
+                                            }
+                                            .padding(vertical = 4.dp),
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
+                            }
+                        } else if (lyricsResult != null && !lyricsResult.plainLyrics.isNullOrBlank()) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                item {
+                                    Text(
+                                        text = lyricsResult.plainLyrics,
+                                        color = Color.White.copy(alpha = 0.88f),
+                                        fontSize = 15.sp,
+                                        lineHeight = 22.sp,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "Слова песни недоступны",
+                                color = Color(0x77FFFFFF),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(90.dp)
-                    )
+                    // Ultra HD Artwork with Liquid Glass Glow
+                    Box(
+                        modifier = Modifier.size(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (upgradedCoverUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = upgradedCoverUrl,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(280.dp)
+                                    .blur(48.dp)
+                                    .alpha(0.4f),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(290.dp)
+                                .shadow(32.dp, RoundedCornerShape(32.dp), spotColor = Color.Black.copy(alpha = 0.75f))
+                                .clip(RoundedCornerShape(32.dp))
+                                .background(SurfaceElevated)
+                                .border(
+                                    width = 1.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(Color(0x55FFFFFF), Color(0x18FFFFFF))
+                                    ),
+                                    shape = RoundedCornerShape(32.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (upgradedCoverUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = upgradedCoverUrl,
+                                    contentDescription = track.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(90.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -382,63 +510,126 @@ fun FullPlayerSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Bottom Actions (Offline Download button & Storage Status)
+            // Bottom Liquid Glass Action Dock (Lyrics, Download, Queue)
             val isDownloaded = track.isDownloaded || downloadProgress?.isCompleted == true
             val isDownloading = downloadProgress?.isDownloading == true
 
-            Button(
-                onClick = onDownloadClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDownloaded) GreenSuccess.copy(alpha = 0.18f) else Color(0x22FFFFFF),
-                    contentColor = if (isDownloaded) GreenSuccess else TextPrimary
-                ),
-                shape = RoundedCornerShape(24.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (isDownloaded) GreenSuccess.copy(alpha = 0.35f) else Color(0x33FFFFFF)
-                ),
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(Color(0x18FFFFFF))
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(Color(0x38FFFFFF), Color(0x10FFFFFF))
+                        ),
+                        shape = RoundedCornerShape(26.dp)
+                    )
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
             ) {
-                if (isDownloading) {
-                    CircularProgressIndicator(
-                        progress = { (downloadProgress?.progressPercent ?: 0) / 100f },
-                        modifier = Modifier.size(18.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Скачивание... ${downloadProgress?.progressPercent ?: 0}%",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                } else if (isDownloaded) {
+                // Lyrics toggle
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (showLyrics) Color(0x38FFFFFF) else Color.Transparent)
+                        .clickable { showLyrics = !showLyrics }
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FormatQuote,
+                            contentDescription = "Lyrics",
+                            tint = if (showLyrics) Color.White else Color(0x99FFFFFF),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        if (showLyrics) {
+                            Text(
+                                text = "Текст",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                // Download icon action
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            when {
+                                isDownloaded -> GreenSuccess.copy(alpha = 0.22f)
+                                isDownloading -> Color(0x28FFFFFF)
+                                else -> Color.Transparent
+                            }
+                        )
+                        .clickable { onDownloadClick() }
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (isDownloading) {
+                            CircularProgressIndicator(
+                                progress = { (downloadProgress?.progressPercent ?: 0) / 100f },
+                                modifier = Modifier.size(18.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Text(
+                                text = "${downloadProgress?.progressPercent ?: 0}%",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        } else if (isDownloaded) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = GreenSuccess,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Офлайн",
+                                color = GreenSuccess,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Download,
+                                contentDescription = "Download",
+                                tint = Color.White.copy(alpha = 0.85f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Queue button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { showQueueSheet = true }
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = GreenSuccess,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Сохранено на устройстве (Офлайн)",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Download,
-                        contentDescription = null,
-                        tint = TextPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Скачать для прослушивания без интернета",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        imageVector = Icons.Default.QueueMusic,
+                        contentDescription = "Queue",
+                        tint = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

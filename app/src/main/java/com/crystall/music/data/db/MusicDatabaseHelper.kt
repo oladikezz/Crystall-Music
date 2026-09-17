@@ -1,4 +1,4 @@
-﻿package com.crystall.music.data.db
+package com.crystall.music.data.db
 
 import android.content.ContentValues
 import android.content.Context
@@ -76,6 +76,13 @@ class MusicDatabaseHelper private constructor(context: Context) :
             CREATE TABLE play_history (
                 track_id TEXT PRIMARY KEY,
                 played_at INTEGER DEFAULT 0
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
             )
         """.trimIndent())
     }
@@ -352,5 +359,48 @@ class MusicDatabaseHelper private constructor(context: Context) :
             waveformUrl = c.getString(c.getColumnIndexOrThrow("waveform_url")),
             addedAt = c.getLong(c.getColumnIndexOrThrow("added_at"))
         )
+    }
+
+    fun getSetting(key: String, defaultValue: String = ""): String {
+        return try {
+            val db = readableDatabase
+            db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+            val cursor = db.query("settings", arrayOf("value"), "key = ?", arrayOf(key), null, null, null)
+            cursor.use {
+                if (it.moveToFirst()) it.getString(0) ?: defaultValue else defaultValue
+            }
+        } catch (_: Exception) {
+            defaultValue
+        }
+    }
+
+    fun setSetting(key: String, value: String) {
+        try {
+            val db = writableDatabase
+            db.execSQL("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+            val cv = ContentValues().apply {
+                put("key", key)
+                put("value", value)
+            }
+            db.insertWithOnConflict("settings", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+        } catch (_: Exception) {}
+    }
+
+    fun getFavoriteArtists(): List<String> {
+        val raw = getSetting("favorite_artists", "")
+        if (raw.isBlank()) return emptyList()
+        return raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    fun saveFavoriteArtists(artists: List<String>) {
+        setSetting("favorite_artists", artists.joinToString("|||"))
+    }
+
+    fun hasCompletedTasteOnboarding(): Boolean {
+        return getSetting("taste_onboarding_done", "false") == "true"
+    }
+
+    fun setTasteOnboardingCompleted(completed: Boolean) {
+        setSetting("taste_onboarding_done", if (completed) "true" else "false")
     }
 }

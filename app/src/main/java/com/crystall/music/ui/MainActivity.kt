@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.crystall.music.ui.components.FullPlayerSheet
 import com.crystall.music.ui.components.MiniPlayer
+import com.crystall.music.ui.components.TastePickerSheet
 import com.crystall.music.ui.screens.*
 import com.crystall.music.ui.theme.*
 
@@ -98,6 +99,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val isFullPlayerVisible by viewModel.isFullPlayerVisible.collectAsState()
     val selectedPlaylist by viewModel.selectedPlaylist.collectAsState()
     val selectedPlaylistTracks by viewModel.selectedPlaylistTracks.collectAsState()
+    val favoriteArtists by viewModel.favoriteArtists.collectAsState()
+    val showTastePicker by viewModel.showTastePicker.collectAsState()
+    val currentLyrics by viewModel.currentLyrics.collectAsState()
+    val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsState()
 
     val playerManager = viewModel.playerManager
     val currentTrack by playerManager.currentTrack.collectAsState()
@@ -135,6 +140,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         downloadStates = downloadStates,
                         favoriteIds = favoriteIds,
                         isLoading = isLoadingTrending,
+                        hasCustomTastes = favoriteArtists.isNotEmpty(),
                         onTrackClick = { track, q ->
                             playerManager.playTrack(track, q)
                             viewModel.showFullPlayer()
@@ -142,7 +148,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         onDownloadClick = { track -> viewModel.downloadTrack(track) },
                         onFavoriteClick = { track -> viewModel.toggleFavorite(track) },
                         onNavigateToSearch = { viewModel.setTab(1) },
-                        onNavigateToImport = { viewModel.setTab(2) }
+                        onNavigateToImport = { viewModel.setTab(2) },
+                        onOpenTastePicker = { viewModel.openTastePicker() }
                     )
                     1 -> SearchScreen(
                         currentTrack = currentTrack,
@@ -343,6 +350,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 repeatMode = repeatMode,
                 queue = queue,
                 downloadProgress = downloadStates[track.id],
+                lyricsResult = currentLyrics,
+                isLoadingLyrics = isLoadingLyrics,
                 onDismiss = { viewModel.hideFullPlayer() },
                 onPlayPauseClick = { playerManager.togglePlayPause() },
                 onNextClick = { playerManager.skipNext() },
@@ -377,6 +386,20 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 onDownloadClick = { track -> viewModel.downloadTrack(track) },
                 onFavoriteClick = { track -> viewModel.toggleFavorite(track) },
                 onDownloadAll = { tracks -> viewModel.downloadAllTracks(tracks) }
+            )
+        }
+
+        // Taste Picker Modal Sheet
+        AnimatedVisibility(
+            visible = showTastePicker,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            TastePickerSheet(
+                initialSelectedArtists = favoriteArtists,
+                onDismiss = { viewModel.dismissTastePicker(skipped = false) },
+                onSkip = { viewModel.dismissTastePicker(skipped = true) },
+                onSave = { artists -> viewModel.saveFavoriteArtists(artists) }
             )
         }
     }

@@ -112,7 +112,7 @@ fun MiniPlayer(
             ) {
                 if (track.coverUrl.isNotBlank()) {
                     AsyncImage(
-                        model = track.coverUrl,
+                        model = com.crystall.music.engine.YouTubeEngine.upgradeThumbnailUrl(track.coverUrl),
                         contentDescription = track.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

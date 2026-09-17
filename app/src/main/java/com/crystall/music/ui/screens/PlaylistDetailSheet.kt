@@ -62,7 +62,7 @@ fun PlaylistDetailSheet(
                 ) {
                     if (!playlist.coverUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = playlist.coverUrl,
+                            model = com.crystall.music.engine.YouTubeEngine.upgradeThumbnailUrl(playlist.coverUrl),
                             contentDescription = playlist.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop

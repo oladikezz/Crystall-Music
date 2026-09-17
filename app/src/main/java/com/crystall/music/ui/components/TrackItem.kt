@@ -60,7 +60,7 @@ fun TrackItem(
         ) {
             if (track.coverUrl.isNotBlank()) {
                 AsyncImage(
-                    model = track.coverUrl,
+                    model = com.crystall.music.engine.YouTubeEngine.upgradeThumbnailUrl(track.coverUrl),
                     contentDescription = track.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -119,46 +119,6 @@ fun TrackItem(
             Spacer(modifier = Modifier.height(3.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Source badge
-                when (track.source) {
-                    AudioSource.YOUTUBE -> {
-                        Text(
-                            text = "YT",
-                            color = YouTubeRed,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .background(YouTubeRed.copy(alpha = 0.15f), RoundedCornerShape(3.dp))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    AudioSource.SOUNDCLOUD -> {
-                        Text(
-                            text = "SC",
-                            color = SoundCloudOrange,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .background(SoundCloudOrange.copy(alpha = 0.15f), RoundedCornerShape(3.dp))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    AudioSource.LOCAL -> {
-                        Text(
-                            text = "OFFLINE",
-                            color = GreenSuccess,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .background(GreenSuccess.copy(alpha = 0.15f), RoundedCornerShape(3.dp))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                }
-
                 Text(
                     text = track.artist,
                     color = TextSecondary,
