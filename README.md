@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="art/crystall_app_badge.png" width="130" height="130" alt="Crystall Music Logo" />
+
 #  Crystall Music
 
 **Next-Gen Android Music Player with Pure Liquid Glassmorphism & Autonomous YouTube Music Engine**
