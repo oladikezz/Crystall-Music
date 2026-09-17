@@ -119,13 +119,20 @@ class MusicDownloadManager private constructor(private val context: Context) {
             val extension = when {
                 track.source == AudioSource.SOUNDCLOUD -> "mp3"
                 streamUrl.contains(".mp3") -> "mp3"
-                else -> "m4a"
+                streamUrl.contains("webm") || streamUrl.contains("itag=251") -> "webm"
+                else -> "mp4"
             }
             val targetFile = File(musicDir, "${sanitizedId}.$extension")
 
+            val userAgent = if (track.source == AudioSource.SOUNDCLOUD) {
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            } else {
+                "com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip"
+            }
+
             val request = Request.Builder()
                 .url(streamUrl)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
+                .header("User-Agent", userAgent)
                 .build()
 
             val response = httpClient.newCall(request).execute()

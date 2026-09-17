@@ -3,8 +3,11 @@ package com.crystall.music.ui.components
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,6 +25,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,7 +69,15 @@ fun FullPlayerSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF161622),
+                        Color(0xFF0C0C12),
+                        Color(0xFF060608)
+                    )
+                )
+            )
     ) {
         Column(
             modifier = Modifier
@@ -190,8 +202,9 @@ fun FullPlayerSheet(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .basicMarquee()
                         )
                         if (isPlaying) {
                             EqualizerVisualizer(
@@ -228,14 +241,15 @@ fun FullPlayerSheet(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // SoundCloud Inspired Waveform Scrubber
-            val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
+            // Pure Liquid Glass Waveform Scrubber
+            val totalDuration: Long = if (durationMs > 0L) durationMs else track.durationMs
+            val progress: Float = if (totalDuration > 0L) (positionMs.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f) else 0f
 
             WaveformScrubber(
                 progress = progress,
                 onSeek = { newFraction ->
-                    if (durationMs > 0) {
-                        onSeekTo((newFraction * durationMs).toLong())
+                    if (totalDuration > 0L) {
+                        onSeekTo((newFraction * totalDuration).toLong())
                     }
                 }
             )
@@ -254,7 +268,7 @@ fun FullPlayerSheet(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = formatMs(durationMs),
+                    text = if (totalDuration > 0L) formatMs(totalDuration) else "--:--",
                     color = TextMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
@@ -500,7 +514,7 @@ fun WaveformScrubber(
     progress: Float,
     onSeek: (Float) -> Unit
 ) {
-    // Generate 36 distinct bar heights resembling SoundCloud waveform
+    // Generate 36 distinct bar heights resembling a clean audio waveform
     val barCount = 36
     val barHeights = remember {
         List(barCount) { idx ->
@@ -510,43 +524,72 @@ fun WaveformScrubber(
         }
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    var isDragging by remember { mutableStateOf(false) }
+    var dragProgress by remember { mutableFloatStateOf(0f) }
+    val effectiveProgress = if (isDragging) dragProgress else progress
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val fraction = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
+                    onSeek(fraction)
+                }
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        isDragging = true
+                        val fraction = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
+                        dragProgress = fraction
+                        onSeek(fraction)
+                    },
+                    onDragEnd = {
+                        isDragging = false
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                    },
+                    onHorizontalDrag = { change, _ ->
+                        change.consume()
+                        val fraction = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
+                        dragProgress = fraction
+                        onSeek(fraction)
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(38.dp)
-                .clickable { /* touch handled by slider below */ },
+                .fillMaxHeight(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.CenterVertically
         ) {
             barHeights.forEachIndexed { i, hRatio ->
-                val barFraction = i.toFloat() / barCount.toFloat()
-                val isPlayed = barFraction <= progress
+                val barFraction = (i.toFloat() + 0.5f) / barCount.toFloat()
+                val isPlayed = barFraction <= effectiveProgress
+                val isCurrent = (barFraction - effectiveProgress).let { it >= -0.025f && it <= 0.025f }
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 1.dp)
                         .fillMaxHeight(hRatio)
-                        .clip(RoundedCornerShape(2.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .background(
-                            if (isPlayed) Color.White else Color(0x33FFFFFF)
+                            when {
+                                isCurrent -> Color.White
+                                isPlayed -> Color(0xEEFFFFFF)
+                                else -> Color(0x30FFFFFF)
+                            }
                         )
                 )
             }
         }
-
-        Slider(
-            value = progress,
-            onValueChange = onSeek,
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color.Transparent,
-                inactiveTrackColor = Color.Transparent
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-14).dp)
-        )
     }
 }
 

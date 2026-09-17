@@ -8,6 +8,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
@@ -48,7 +49,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val dbHelper = MusicDatabaseHelper.getInstance(context)
 
     private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-        .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
+        .setUserAgent("com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip")
         .setConnectTimeoutMs(20000)
         .setReadTimeoutMs(30000)
         .setAllowCrossProtocolRedirects(true)
@@ -185,10 +186,18 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 .setArtworkUri(if (track.coverUrl.isNotBlank()) Uri.parse(track.coverUrl) else null)
                 .build()
 
-            val mediaItem = MediaItem.Builder()
+            val mediaItemBuilder = MediaItem.Builder()
                 .setUri(playableUri)
                 .setMediaMetadata(metadata)
-                .build()
+
+            if (playableUri.startsWith("http")) {
+                if (playableUri.contains("itag=251") || playableUri.contains("webm")) {
+                    mediaItemBuilder.setMimeType(MimeTypes.AUDIO_WEBM)
+                } else if (playableUri.contains("itag=18") || playableUri.contains("itag=140") || playableUri.contains("mime=audio%2Fmp4") || playableUri.contains("mime=video%2Fmp4")) {
+                    mediaItemBuilder.setMimeType(MimeTypes.AUDIO_MP4)
+                }
+            }
+            val mediaItem = mediaItemBuilder.build()
 
             withContext(Dispatchers.Main) {
                 // Final guard on the main thread before we touch the player.
@@ -198,6 +207,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 player.clearMediaItems()
                 player.setMediaItem(mediaItem)
                 player.prepare()
+                player.playWhenReady = true
                 player.play()
             }
         }

@@ -222,6 +222,119 @@ object YouTubeEngine {
     }
 
     private suspend fun fetchAudioStreamUrl(videoId: String): String? {
+        // First try the official ANDROID client which returns itag 18 (MP4 AAC stereo) with ratebypass=yes
+        // This format plays flawlessly in ExoPlayer and downloads in full without 403 or throttling.
+        val androidUrl = fetchAudioStreamUrlAndroid(videoId)
+        if (!androidUrl.isNullOrBlank()) return androidUrl
+
+        // Fallback to ANDROID_VR client
+        return fetchAudioStreamUrlAndroidVr(videoId)
+    }
+
+    private suspend fun fetchAudioStreamUrlAndroid(videoId: String): String? {
+        return try {
+            val (visitorId, sts) = ensureVisitorAndSts()
+
+            val jsonPayload = """
+            {
+                "context": {
+                    "client": {
+                        "clientName": "ANDROID",
+                        "clientVersion": "21.02.35",
+                        "androidSdkVersion": 30,
+                        "userAgent": "com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip",
+                        "osName": "Android",
+                        "osVersion": "11",
+                        "hl": "en",
+                        "gl": "US",
+                        "visitorData": "$visitorId"
+                    }
+                },
+                "videoId": "$videoId",
+                "playbackContext": {
+                    "contentPlaybackContext": {
+                        "html5Preference": "HTML5_PREF_WANTS",
+                        "signatureTimestamp": $sts
+                    }
+                },
+                "contentCheckOk": true,
+                "racyCheckOk": true
+            }
+            """.trimIndent()
+
+            val reqBuilder = Request.Builder()
+                .url("https://www.youtube.com/youtubei/v1/player")
+                .header("X-YouTube-Client-Name", "3")
+                .header("X-YouTube-Client-Version", "21.02.35")
+                .header("Origin", "https://www.youtube.com")
+                .header("User-Agent", "com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip")
+                .header("Content-Type", "application/json")
+
+            if (visitorId.isNotBlank()) {
+                reqBuilder.header("X-Goog-Visitor-Id", visitorId)
+            }
+
+            val request = reqBuilder.post(jsonPayload.toRequestBody(JSON_MEDIA)).build()
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
+
+            val root = JsonParser.parseString(body).asJsonObject
+            val status = root.getAsJsonObject("playabilityStatus")?.get("status")?.asString
+            if (status != null && status != "OK") return null
+
+            val streamingData = root.getAsJsonObject("streamingData") ?: return null
+
+            // 1. Check standard combined formats (itag 18 is 360p MP4 with full AAC stereo audio and ratebypass=yes)
+            val formats = streamingData.getAsJsonArray("formats")
+            if (formats != null) {
+                var itag18Url: String? = null
+                var anyBypassUrl: String? = null
+                for (elem in formats) {
+                    val fmt = elem.asJsonObject
+                    val url = fmt.get("url")?.asString
+                    val itag = fmt.get("itag")?.asInt ?: 0
+                    if (!url.isNullOrBlank()) {
+                        if (itag == 18) {
+                            itag18Url = url
+                            break
+                        }
+                        if (url.contains("ratebypass=yes") && anyBypassUrl == null) {
+                            anyBypassUrl = url
+                        }
+                    }
+                }
+                val best = itag18Url ?: anyBypassUrl
+                if (!best.isNullOrBlank()) return best
+            }
+
+            // 2. Check adaptiveFormats
+            val adaptive = streamingData.getAsJsonArray("adaptiveFormats")
+            if (adaptive != null) {
+                var bestAudio: String? = null
+                var maxBitrate = 0
+                for (elem in adaptive) {
+                    val fmt = elem.asJsonObject
+                    val mime = fmt.get("mimeType")?.asString ?: ""
+                    val url = fmt.get("url")?.asString
+                    val bitrate = fmt.get("bitrate")?.asInt ?: 0
+                    if (mime.contains("audio") && !url.isNullOrBlank()) {
+                        if (bitrate > maxBitrate) {
+                            maxBitrate = bitrate
+                            bestAudio = url
+                        }
+                    }
+                }
+                if (!bestAudio.isNullOrBlank()) return bestAudio
+            }
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private suspend fun fetchAudioStreamUrlAndroidVr(videoId: String): String? {
         return try {
             val (visitorId, sts) = ensureVisitorAndSts()
 
