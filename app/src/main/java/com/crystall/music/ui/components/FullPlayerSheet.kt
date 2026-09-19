@@ -59,6 +59,9 @@ fun FullPlayerSheet(
     downloadProgress: DownloadProgress?,
     lyricsResult: LyricsResult? = null,
     isLoadingLyrics: Boolean = false,
+    sleepTimerRemainingMs: Long? = null,
+    isSleepTimerEndOfTrack: Boolean = false,
+    onOpenPlayerOptions: () -> Unit = {},
     onDismiss: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
@@ -127,19 +130,59 @@ fun FullPlayerSheet(
                     )
                 }
 
-                // Minimal glass pill
-                Box(
-                    modifier = Modifier
-                        .width(36.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x28FFFFFF))
-                )
+                // Center: active sleep timer countdown or minimal glass pill
+                if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) {
+                    val timerText = if (isSleepTimerEndOfTrack) {
+                        "🌙 Конец трека"
+                    } else {
+                        val totalSec = (sleepTimerRemainingMs ?: 0L) / 1000
+                        val min = totalSec / 60
+                        val sec = totalSec % 60
+                        String.format("🌙 %d:%02d", min, sec)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0x30FFFFFF))
+                            .border(0.5.dp, Color(0x55FFFFFF), RoundedCornerShape(14.dp))
+                            .clickable { onOpenPlayerOptions() }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = timerText,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .width(36.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x28FFFFFF))
+                    )
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    // Sleep Timer / Options button
+                    IconButton(
+                        onClick = onOpenPlayerOptions,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
+                            contentDescription = "Options",
+                            tint = if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) GreenSuccess else Color(0x99FFFFFF),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
                     // Lyrics toggle
                     IconButton(
                         onClick = { showLyrics = !showLyrics },
@@ -421,11 +464,29 @@ fun FullPlayerSheet(
                     )
                 }
 
+                var isPrevPressed by remember { mutableStateOf(false) }
+                val prevScale by animateFloatAsState(
+                    targetValue = if (isPrevPressed) 0.82f else 1f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "prevScale"
+                )
+
                 // Previous
                 IconButton(
-                    onClick = onPreviousClick,
-                    modifier = Modifier.size(48.dp)
+                    onClick = {
+                        isPrevPressed = true
+                        onPreviousClick()
+                    },
+                    modifier = Modifier
+                        .scale(prevScale)
+                        .size(48.dp)
                 ) {
+                    LaunchedEffect(isPrevPressed) {
+                        if (isPrevPressed) {
+                            kotlinx.coroutines.delay(120)
+                            isPrevPressed = false
+                        }
+                    }
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous",
@@ -480,11 +541,29 @@ fun FullPlayerSheet(
                     }
                 }
 
+                var isNextPressed by remember { mutableStateOf(false) }
+                val nextScale by animateFloatAsState(
+                    targetValue = if (isNextPressed) 0.82f else 1f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "nextScale"
+                )
+
                 // Next
                 IconButton(
-                    onClick = onNextClick,
-                    modifier = Modifier.size(48.dp)
+                    onClick = {
+                        isNextPressed = true
+                        onNextClick()
+                    },
+                    modifier = Modifier
+                        .scale(nextScale)
+                        .size(48.dp)
                 ) {
+                    LaunchedEffect(isNextPressed) {
+                        if (isNextPressed) {
+                            kotlinx.coroutines.delay(120)
+                            isNextPressed = false
+                        }
+                    }
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next",
@@ -615,6 +694,23 @@ fun FullPlayerSheet(
                             )
                         }
                     }
+                }
+
+                // Options / Sleep Timer button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) GreenSuccess.copy(alpha = 0.22f) else Color.Transparent)
+                        .clickable { onOpenPlayerOptions() }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
+                        contentDescription = "Options",
+                        tint = if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) GreenSuccess else Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
                 // Queue button

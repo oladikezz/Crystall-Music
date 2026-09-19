@@ -1,4 +1,4 @@
-﻿*.hprof
+*.hprof
 *.apk
 *.aab
 .gradle/
@@ -11,3 +11,4 @@ local.properties
 Captures/
 .externalNativeBuild/
 .cxx/
+.kotlin/

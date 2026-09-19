@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.crystall.music.ui.components.FullPlayerSheet
 import com.crystall.music.ui.components.MiniPlayer
+import com.crystall.music.ui.components.PlayerOptionsSheet
 import com.crystall.music.ui.components.TastePickerSheet
 import com.crystall.music.ui.screens.*
 import com.crystall.music.ui.theme.*
@@ -113,6 +114,13 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val queue by playerManager.queue.collectAsState()
     val isShuffle by playerManager.isShuffle.collectAsState()
     val repeatMode by playerManager.repeatMode.collectAsState()
+    val sleepTimerRemainingMs by playerManager.sleepTimerRemainingMs.collectAsState()
+    val isSleepTimerEndOfTrack by playerManager.isSleepTimerEndOfTrack.collectAsState()
+    val isEndlessRadioEnabled by playerManager.isEndlessRadioEnabled.collectAsState()
+    val playbackSpeed by playerManager.playbackSpeed.collectAsState()
+
+    var isSplashVisible by remember { mutableStateOf(true) }
+    var showPlayerOptions by remember { mutableStateOf(false) }
 
     val downloadStates by viewModel.downloadManager.downloadStates.collectAsState()
 
@@ -352,6 +360,9 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 downloadProgress = downloadStates[track.id],
                 lyricsResult = currentLyrics,
                 isLoadingLyrics = isLoadingLyrics,
+                sleepTimerRemainingMs = sleepTimerRemainingMs,
+                isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
+                onOpenPlayerOptions = { showPlayerOptions = true },
                 onDismiss = { viewModel.hideFullPlayer() },
                 onPlayPauseClick = { playerManager.togglePlayPause() },
                 onNextClick = { playerManager.skipNext() },
@@ -400,6 +411,37 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 onDismiss = { viewModel.dismissTastePicker(skipped = false) },
                 onSkip = { viewModel.dismissTastePicker(skipped = true) },
                 onSave = { artists -> viewModel.saveFavoriteArtists(artists) }
+            )
+        }
+
+        // Player Options Modal Sheet (Sleep Timer, Playback Speed, Endless Radio)
+        AnimatedVisibility(
+            visible = showPlayerOptions,
+            enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(200)),
+            exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(200))
+        ) {
+            PlayerOptionsSheet(
+                sleepTimerRemainingMs = sleepTimerRemainingMs,
+                isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
+                isEndlessRadioEnabled = isEndlessRadioEnabled,
+                playbackSpeed = playbackSpeed,
+                onSetSleepTimer = { minutes -> playerManager.setSleepTimer(minutes) },
+                onSetSleepTimerEndOfTrack = { playerManager.setSleepTimerUntilEndOfTrack() },
+                onCancelSleepTimer = { playerManager.cancelSleepTimer() },
+                onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
+                onSetPlaybackSpeed = { speed -> playerManager.setPlaybackSpeed(speed) },
+                onDismiss = { showPlayerOptions = false }
+            )
+        }
+
+        // Liquid Glass Animated Launch / Splash Screen
+        AnimatedVisibility(
+            visible = isSplashVisible,
+            enter = fadeIn(),
+            exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(400))
+        ) {
+            SplashScreen(
+                onFinished = { isSplashVisible = false }
             )
         }
     }

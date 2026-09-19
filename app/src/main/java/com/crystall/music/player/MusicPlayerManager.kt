@@ -9,6 +9,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
@@ -19,6 +20,7 @@ import androidx.media3.session.MediaSession
 import com.crystall.music.data.db.MusicDatabaseHelper
 import com.crystall.music.data.model.Track
 import com.crystall.music.engine.UniversalMusicResolver
+import com.crystall.music.engine.YouTubeEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -98,7 +100,20 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val _repeatMode = MutableStateFlow(0)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
 
+    private val _sleepTimerRemainingMs = MutableStateFlow<Long?>(null)
+    val sleepTimerRemainingMs: StateFlow<Long?> = _sleepTimerRemainingMs.asStateFlow()
+
+    private val _isSleepTimerEndOfTrack = MutableStateFlow(false)
+    val isSleepTimerEndOfTrack: StateFlow<Boolean> = _isSleepTimerEndOfTrack.asStateFlow()
+
+    private val _isEndlessRadioEnabled = MutableStateFlow(true)
+    val isEndlessRadioEnabled: StateFlow<Boolean> = _isEndlessRadioEnabled.asStateFlow()
+
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
     private var progressTrackerJob: Job? = null
+    private var sleepTimerJob: Job? = null
 
     init {
         try {
@@ -291,7 +306,65 @@ class MusicPlayerManager private constructor(private val context: Context) {
         _repeatMode.value = (_repeatMode.value + 1) % 3
     }
 
+    fun setSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        _isSleepTimerEndOfTrack.value = false
+        if (minutes <= 0) {
+            cancelSleepTimer()
+            return
+        }
+        val totalMs = minutes * 60 * 1000L
+        sleepTimerJob = scope.launch(Dispatchers.Main) {
+            var remaining = totalMs
+            while (isActive && remaining > 0) {
+                _sleepTimerRemainingMs.value = remaining
+                // Fade out in last 10 seconds
+                if (remaining <= 10000L) {
+                    val vol = (remaining.toFloat() / 10000f).coerceIn(0f, 1f)
+                    player.volume = vol
+                } else {
+                    player.volume = 1.0f
+                }
+                delay(1000)
+                remaining -= 1000L
+            }
+            _sleepTimerRemainingMs.value = null
+            player.pause()
+            player.volume = 1.0f
+        }
+    }
+
+    fun setSleepTimerUntilEndOfTrack() {
+        sleepTimerJob?.cancel()
+        _isSleepTimerEndOfTrack.value = true
+        _sleepTimerRemainingMs.value = null
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        _sleepTimerRemainingMs.value = null
+        _isSleepTimerEndOfTrack.value = false
+        player.volume = 1.0f
+    }
+
+    fun toggleEndlessRadio() {
+        _isEndlessRadioEnabled.value = !_isEndlessRadioEnabled.value
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        _playbackSpeed.value = speed
+        player.playbackParameters = PlaybackParameters(speed)
+    }
+
     private fun onTrackEnded() {
+        if (_isSleepTimerEndOfTrack.value) {
+            _isSleepTimerEndOfTrack.value = false
+            player.pause()
+            player.seekTo(0)
+            return
+        }
+
         when (_repeatMode.value) {
             2 -> { // Repeat ONE
                 player.seekTo(0)
@@ -307,6 +380,35 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
                 if (hasNext) {
                     skipNext()
+                } else if (_isEndlessRadioEnabled.value && current != null) {
+                    // Smart Endless Radio: auto-discover similar tracks from artist/mood!
+                    scope.launch {
+                        try {
+                            val recommendations = YouTubeEngine.search(current.artist, songsOnly = true)
+                            val nextTracks = recommendations.filter { rec ->
+                                rec.id != current.id && q.none { it.id == rec.id }
+                            }
+                            if (nextTracks.isNotEmpty()) {
+                                val nextTrack = nextTracks.first()
+                                withContext(Dispatchers.Main) {
+                                    _queue.value = _queue.value + nextTracks.take(5)
+                                    playTrack(nextTrack)
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    _currentPosition.value = 0L
+                                    player.seekTo(0)
+                                    player.pause()
+                                }
+                            }
+                        } catch (_: Exception) {
+                            withContext(Dispatchers.Main) {
+                                _currentPosition.value = 0L
+                                player.seekTo(0)
+                                player.pause()
+                            }
+                        }
+                    }
                 } else {
                     // End of queue — reset position so the UI shows 0:00 and
                     // the Play button can restart the track via togglePlayPause.
@@ -338,6 +440,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     fun release() {
         stopProgressTracker()
+        cancelSleepTimer()
         mediaSession?.release()
         player.release()
     }
