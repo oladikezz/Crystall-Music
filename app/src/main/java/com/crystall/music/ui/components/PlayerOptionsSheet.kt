@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.crystall.music.ui.theme.GreenSuccess
 import com.crystall.music.ui.theme.TextPrimary
 import com.crystall.music.ui.theme.TextSecondary
+import com.crystall.music.ui.theme.YtRed
+import com.crystall.music.ui.theme.YtSurface
+import com.crystall.music.ui.theme.YtSurfaceElevated
 
 @Composable
 fun PlayerOptionsSheet(
@@ -34,17 +37,19 @@ fun PlayerOptionsSheet(
     isSleepTimerEndOfTrack: Boolean,
     isEndlessRadioEnabled: Boolean,
     playbackSpeed: Float,
+    isEconomyMode: Boolean = true,
     onSetSleepTimer: (Int) -> Unit,
     onSetSleepTimerEndOfTrack: () -> Unit,
     onCancelSleepTimer: () -> Unit,
     onToggleEndlessRadio: () -> Unit,
     onSetPlaybackSpeed: (Float) -> Unit,
+    onToggleEconomyMode: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.65f))
+            .background(Color.Black.copy(alpha = 0.7f))
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -54,44 +59,34 @@ fun PlayerOptionsSheet(
                 .clickable(enabled = false) {}
                 .shadow(
                     elevation = 32.dp,
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                    spotColor = Color.Black.copy(alpha = 0.8f)
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    spotColor = Color.Black.copy(alpha = 0.85f)
                 )
-                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color(0xF51A1B29),
-                            Color(0xF811121C),
-                            Color(0xFF090A10)
-                        )
-                    )
-                )
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(YtSurfaceElevated)
                 .border(
                     width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(Color(0x4DFFFFFF), Color(0x10FFFFFF))
-                    ),
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                    color = Color(0x22FFFFFF),
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                 )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 22.dp, vertical = 12.dp)
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
                     .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Drag handle
                 Box(
                     modifier = Modifier
-                        .width(42.dp)
-                        .height(5.dp)
+                        .width(40.dp)
+                        .height(4.dp)
                         .clip(CircleShape)
                         .background(Color(0x4DFFFFFF))
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Title row
                 Row(
@@ -100,9 +95,9 @@ fun PlayerOptionsSheet(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Опции воспроизведения",
-                        color = TextPrimary,
-                        fontSize = 20.sp,
+                        text = "Настройки воспроизведения",
+                        color = Color.White,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -119,16 +114,165 @@ fun PlayerOptionsSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 1: Sleep Timer
+                // ---------------------------------------------------------
+                // SECTION 0: Экономия интернет-трафика (Эконом / Норм)
+                // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(Color(0x14FFFFFF))
-                        .border(1.dp, Color(0x20FFFFFF), RoundedCornerShape(20.dp))
-                        .padding(16.dp)
+                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DataSaverOn,
+                            contentDescription = null,
+                            tint = if (isEconomyMode) GreenSuccess else Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Расход интернет-трафика",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Эконом режим Card
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isEconomyMode) GreenSuccess.copy(alpha = 0.18f) else Color(0x10FFFFFF)
+                                )
+                                .border(
+                                    width = if (isEconomyMode) 1.5.dp else 0.5.dp,
+                                    color = if (isEconomyMode) GreenSuccess else Color(0x25FFFFFF),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clickable {
+                                    if (!isEconomyMode) onToggleEconomyMode()
+                                }
+                                .padding(12.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "⚡ Эконом",
+                                        color = if (isEconomyMode) GreenSuccess else Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    if (isEconomyMode) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = GreenSuccess,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "~1.2 МБ / трек",
+                                    color = if (isEconomyMode) Color.White else Color(0x99FFFFFF),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Минимум интернета, лёгкие обложки",
+                                    color = Color(0x88FFFFFF),
+                                    fontSize = 10.sp,
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+
+                        // Норм режим Card
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (!isEconomyMode) Color(0x28FFFFFF) else Color(0x10FFFFFF)
+                                )
+                                .border(
+                                    width = if (!isEconomyMode) 1.5.dp else 0.5.dp,
+                                    color = if (!isEconomyMode) Color.White else Color(0x25FFFFFF),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clickable {
+                                    if (isEconomyMode) onToggleEconomyMode()
+                                }
+                                .padding(12.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "💎 Норм",
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    if (!isEconomyMode) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "~3.5 МБ / трек",
+                                    color = if (!isEconomyMode) Color.White else Color(0x99FFFFFF),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Высокое качество, Ultra HD обложки",
+                                    color = Color(0x88FFFFFF),
+                                    fontSize = 10.sp,
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ---------------------------------------------------------
+                // SECTION 1: Таймер сна (Sleep Timer)
+                // ---------------------------------------------------------
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0x14FFFFFF))
+                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                        .padding(14.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -191,7 +335,7 @@ fun PlayerOptionsSheet(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // Timer Chips
                     Row(
@@ -209,11 +353,11 @@ fun PlayerOptionsSheet(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(Color(0x18FFFFFF))
-                                    .border(0.5.dp, Color(0x30FFFFFF), RoundedCornerShape(14.dp))
+                                    .border(0.5.dp, Color(0x30FFFFFF), RoundedCornerShape(12.dp))
                                     .clickable { onSetSleepTimer(minutes) }
-                                    .padding(vertical = 10.dp),
+                                    .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -231,164 +375,103 @@ fun PlayerOptionsSheet(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(
                                 if (isSleepTimerEndOfTrack) Color(0x38FFFFFF) else Color(0x12FFFFFF)
                             )
-                            .border(0.5.dp, Color(0x28FFFFFF), RoundedCornerShape(14.dp))
+                            .border(0.5.dp, Color(0x28FFFFFF), RoundedCornerShape(12.dp))
                             .clickable { onSetSleepTimerEndOfTrack() }
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "Остановить в конце текущего трека",
                             color = if (isSleepTimerEndOfTrack) Color.White else Color(0xCCFFFFFF),
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = if (isSleepTimerEndOfTrack) FontWeight.Bold else FontWeight.Normal
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Section 2: Playback Speed
+                // ---------------------------------------------------------
+                // SECTION 2: Скорость воспроизведения (0.8x - 1.5x)
+                // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(Color(0x14FFFFFF))
-                        .border(1.dp, Color(0x20FFFFFF), RoundedCornerShape(20.dp))
-                        .padding(16.dp)
+                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                        .padding(14.dp)
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Speed,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Speed,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Скорость воспроизведения",
+                                color = TextPrimary,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
                         Text(
-                            text = "Скорость воспроизведения",
-                            color = TextPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
+                            text = "${playbackSpeed}x",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        val speeds = listOf(
-                            Pair(0.8f, "0.8x"),
-                            Pair(1.0f, "1.0x"),
-                            Pair(1.25f, "1.25x"),
-                            Pair(1.5f, "1.5x")
-                        )
-
-                        for ((spd, spdLabel) in speeds) {
-                            val isSelected = kotlin.math.abs(playbackSpeed - spd) < 0.05f
-                            val bg by animateColorAsState(
-                                targetValue = if (isSelected) Color.White else Color(0x14FFFFFF),
-                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                                label = "speed_bg_$spd"
-                            )
-
+                        val speeds = listOf(0.8f, 1.0f, 1.25f, 1.5f)
+                        for (spd in speeds) {
+                            val isSelected = (playbackSpeed == spd)
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(bg)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isSelected) Color(0x38FFFFFF) else Color(0x18FFFFFF)
+                                    )
                                     .border(
-                                        width = if (isSelected) 0.dp else 0.5.dp,
-                                        color = Color(0x30FFFFFF),
-                                        shape = RoundedCornerShape(14.dp)
+                                        width = if (isSelected) 1.dp else 0.5.dp,
+                                        color = if (isSelected) Color.White else Color(0x30FFFFFF),
+                                        shape = RoundedCornerShape(12.dp)
                                     )
                                     .clickable { onSetPlaybackSpeed(spd) }
-                                    .padding(vertical = 10.dp),
+                                    .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = spdLabel,
-                                    color = if (isSelected) Color(0xFF101014) else Color.White,
-                                    fontSize = 13.sp,
+                                    text = if (spd == 1.0f) "1.0x" else "${spd}x",
+                                    color = if (isSelected) Color.White else Color(0xCCFFFFFF),
+                                    fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Section 3: Endless Radio / Smart Autoplay
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0x14FFFFFF))
-                        .border(1.dp, Color(0x20FFFFFF), RoundedCornerShape(20.dp))
-                        .clickable { onToggleEndlessRadio() }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(if (isEndlessRadioEnabled) Color(0x30FFFFFF) else Color(0x14FFFFFF)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AllInclusive,
-                                contentDescription = null,
-                                tint = if (isEndlessRadioEnabled) Color.White else Color(0x88FFFFFF),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "Бесконечный поток",
-                                color = TextPrimary,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Автоподбор музыки по окончании очереди",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-
-                    Switch(
-                        checked = isEndlessRadioEnabled,
-                        onCheckedChange = { onToggleEndlessRadio() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = Color(0x60FFFFFF),
-                            uncheckedThumbColor = Color(0x88FFFFFF),
-                            uncheckedTrackColor = Color(0x20FFFFFF),
-                            checkedBorderColor = Color.Transparent,
-                            uncheckedBorderColor = Color.Transparent
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }

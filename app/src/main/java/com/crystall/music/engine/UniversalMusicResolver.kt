@@ -1,4 +1,4 @@
-﻿package com.crystall.music.engine
+package com.crystall.music.engine
 
 import com.crystall.music.data.model.AudioSource
 import com.crystall.music.data.model.Playlist
@@ -72,7 +72,7 @@ object UniversalMusicResolver {
         ResolveResult.Error("По этой ссылке ничего не найдено на YouTube Music. Проверьте правильность ссылки.")
     }
 
-    suspend fun getStreamUrlForTrack(track: Track): String? {
+    suspend fun getStreamUrlForTrack(track: Track, isEconomyMode: Boolean = true): String? {
         if (!track.localPath.isNullOrBlank()) {
             return track.localPath
         }
@@ -83,7 +83,7 @@ object UniversalMusicResolver {
             com.crystall.music.data.model.AudioSource.SOUNDCLOUD ->
                 SoundCloudEngine.getStreamUrl(track)
             else ->
-                YouTubeEngine.getAudioStreamUrl(track.id)
+                YouTubeEngine.getAudioStreamUrl(track.id, isEconomyMode)
         }
     }
 }

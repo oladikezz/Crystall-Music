@@ -403,4 +403,32 @@ class MusicDatabaseHelper private constructor(context: Context) :
     fun setTasteOnboardingCompleted(completed: Boolean) {
         setSetting("taste_onboarding_done", if (completed) "true" else "false")
     }
+
+    fun isEconomyMode(): Boolean {
+        // Default to true for minimum internet usage
+        return getSetting("economy_mode", "true") == "true"
+    }
+
+    fun setEconomyMode(enabled: Boolean) {
+        setSetting("economy_mode", if (enabled) "true" else "false")
+    }
+
+    fun getDislikedTrackIds(): Set<String> {
+        val raw = getSetting("disliked_tracks", "")
+        if (raw.isBlank()) return emptySet()
+        return raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    }
+
+    fun toggleDislike(trackId: String): Boolean {
+        val current = getDislikedTrackIds().toMutableSet()
+        val isDisliked = if (current.contains(trackId)) {
+            current.remove(trackId)
+            false
+        } else {
+            current.add(trackId)
+            true
+        }
+        setSetting("disliked_tracks", current.joinToString(","))
+        return isDisliked
+    }
 }

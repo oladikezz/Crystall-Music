@@ -85,13 +85,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedPlaylistTracks = MutableStateFlow<List<Track>>(emptyList())
     val selectedPlaylistTracks: StateFlow<List<Track>> = _selectedPlaylistTracks.asStateFlow()
 
+    private val _selectedMood = MutableStateFlow("Все")
+    val selectedMood: StateFlow<String> = _selectedMood.asStateFlow()
+
+    private val _relatedTracks = MutableStateFlow<List<Track>>(emptyList())
+    val relatedTracks: StateFlow<List<Track>> = _relatedTracks.asStateFlow()
+
+    val isEconomyMode = playerManager.isEconomyMode
+    val dislikedTrackIds = playerManager.dislikedTrackIds
+
     private var lyricsJob: Job? = null
+    private var relatedJob: Job? = null
 
     init {
         refreshLibraryData()
         loadFavoriteArtists()
         loadTrendingTracks()
         observeCurrentTrackForLyrics()
+    }
+
+    fun toggleEconomyMode() = playerManager.toggleEconomyMode()
+    fun toggleDislike(track: Track) = playerManager.toggleDislike(track.id)
+
+    fun selectMood(mood: String) {
+        _selectedMood.value = mood
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingTrending.value = true
+            val tracks = if (mood == "Все") {
+                val favs = _favoriteArtists.value
+                if (favs.isNotEmpty()) YouTubeEngine.getPersonalizedRecommendations(favs)
+                else YouTubeEngine.getTrendingMusic()
+            } else {
+                YouTubeEngine.getMoodTracks(mood)
+            }
+            _trendingTracks.value = tracks
+            _isLoadingTrending.value = false
+        }
     }
 
     private fun loadFavoriteArtists() {
@@ -127,9 +156,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             playerManager.currentTrack.collect { track ->
                 lyricsJob?.cancel()
+                relatedJob?.cancel()
                 if (track == null) {
                     _currentLyrics.value = null
                     _isLoadingLyrics.value = false
+                    _relatedTracks.value = emptyList()
                     return@collect
                 }
                 _isLoadingLyrics.value = true
@@ -138,6 +169,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val result = LyricsEngine.getLyrics(track.title, track.artist, track.id)
                     _currentLyrics.value = result
                     _isLoadingLyrics.value = false
+                }
+                relatedJob = launch(Dispatchers.IO) {
+                    val results = YouTubeEngine.search("${track.artist} radio", songsOnly = true)
+                    _relatedTracks.value = results.filter { it.id != track.id }.take(12)
                 }
             }
         }

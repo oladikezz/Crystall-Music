@@ -84,9 +84,25 @@ object YouTubeEngine {
 
     suspend fun getVisitorData(): String = ensureVisitorAndSts().first
 
-    fun upgradeThumbnailUrl(rawUrl: String): String {
+    fun upgradeThumbnailUrl(rawUrl: String, isEconomyMode: Boolean = false): String {
         if (rawUrl.isBlank()) return rawUrl
         var url = rawUrl
+        if (isEconomyMode) {
+            // Keep lightweight thumbnails: ~15-30 KB instead of 1-2 MB
+            if (url.contains("googleusercontent.com") || url.contains("ggpht.com")) {
+                url = url.replace(Regex("=w\\d+-h\\d+[^?&]*"), "=w300-h300-l80-rj")
+                    .replace(Regex("=s\\d+[^?&]*"), "=s300")
+            }
+            if (url.contains("i.ytimg.com") || url.contains("img.youtube.com")) {
+                url = url.replace("maxresdefault.jpg", "mqdefault.jpg")
+                    .replace("hqdefault.jpg", "mqdefault.jpg")
+                    .replace(Regex("=w\\d+-h\\d+[^?&]*"), "=w300-h300-l80-rj")
+            }
+            if (url.contains("sndcdn.com")) {
+                url = url.replace("-t500x500.jpg", "-large.jpg")
+            }
+            return url
+        }
         if (url.contains("googleusercontent.com") || url.contains("ggpht.com")) {
             url = url.replace(Regex("=w\\d+-h\\d+[^?&]*"), "=w1200-h1200-l90-rj")
                 .replace(Regex("=s\\d+[^?&]*"), "=s1200")
@@ -273,26 +289,25 @@ object YouTubeEngine {
         }
     }
 
-    suspend fun getAudioStreamUrl(videoId: String): String? = withContext(Dispatchers.IO) {
-        val result = fetchAudioStreamUrl(videoId)
+    suspend fun getAudioStreamUrl(videoId: String, isEconomyMode: Boolean = true): String? = withContext(Dispatchers.IO) {
+        val result = fetchAudioStreamUrl(videoId, isEconomyMode)
         if (result != null) return@withContext result
         // If first attempt failed, refresh visitor data and retry once
         lastFetchTime = 0L
         ensureVisitorAndSts()
-        fetchAudioStreamUrl(videoId)
+        fetchAudioStreamUrl(videoId, isEconomyMode)
     }
 
-    private suspend fun fetchAudioStreamUrl(videoId: String): String? {
-        // First try the official ANDROID client which returns itag 18 (MP4 AAC stereo) with ratebypass=yes
-        // This format plays flawlessly in ExoPlayer and downloads in full without 403 or throttling.
-        val androidUrl = fetchAudioStreamUrlAndroid(videoId)
+    private suspend fun fetchAudioStreamUrl(videoId: String, isEconomyMode: Boolean): String? {
+        // First try the official ANDROID client with pure audio streams
+        val androidUrl = fetchAudioStreamUrlAndroid(videoId, isEconomyMode)
         if (!androidUrl.isNullOrBlank()) return androidUrl
 
         // Fallback to ANDROID_VR client
-        return fetchAudioStreamUrlAndroidVr(videoId)
+        return fetchAudioStreamUrlAndroidVr(videoId, isEconomyMode)
     }
 
-    private suspend fun fetchAudioStreamUrlAndroid(videoId: String): String? {
+    private suspend fun fetchAudioStreamUrlAndroid(videoId: String, isEconomyMode: Boolean): String? {
         return try {
             val (visitorId, sts) = ensureVisitorAndSts()
 
@@ -346,7 +361,37 @@ object YouTubeEngine {
 
             val streamingData = root.getAsJsonObject("streamingData") ?: return null
 
-            // 1. Check standard combined formats (itag 18 is 360p MP4 with full AAC stereo audio and ratebypass=yes)
+            // 1. Prioritize pure audio streams from adaptiveFormats (eliminates video data transfer: ~1.2MB vs ~20MB)
+            val adaptive = streamingData.getAsJsonArray("adaptiveFormats")
+            if (adaptive != null) {
+                var selectedAudioUrl: String? = null
+                var selectedBitrate = if (isEconomyMode) Int.MAX_VALUE else 0
+
+                for (elem in adaptive) {
+                    val fmt = elem.asJsonObject
+                    val mime = fmt.get("mimeType")?.asString ?: ""
+                    val url = fmt.get("url")?.asString
+                    val bitrate = fmt.get("bitrate")?.asInt ?: 0
+                    if (mime.contains("audio") && !url.isNullOrBlank()) {
+                        if (isEconomyMode) {
+                            // Economy mode: lowest bitrate pure audio (Opus 50-70kbps or AAC 48kbps)
+                            if (bitrate < selectedBitrate) {
+                                selectedBitrate = bitrate
+                                selectedAudioUrl = url
+                            }
+                        } else {
+                            // Normal mode: highest bitrate pure audio (Opus 160kbps or AAC 128kbps)
+                            if (bitrate > selectedBitrate) {
+                                selectedBitrate = bitrate
+                                selectedAudioUrl = url
+                            }
+                        }
+                    }
+                }
+                if (!selectedAudioUrl.isNullOrBlank()) return selectedAudioUrl
+            }
+
+            // 2. Fallback to standard combined formats if pure audio was not directly available
             val formats = streamingData.getAsJsonArray("formats")
             if (formats != null) {
                 var itag18Url: String? = null
@@ -368,26 +413,6 @@ object YouTubeEngine {
                 val best = itag18Url ?: anyBypassUrl
                 if (!best.isNullOrBlank()) return best
             }
-
-            // 2. Check adaptiveFormats
-            val adaptive = streamingData.getAsJsonArray("adaptiveFormats")
-            if (adaptive != null) {
-                var bestAudio: String? = null
-                var maxBitrate = 0
-                for (elem in adaptive) {
-                    val fmt = elem.asJsonObject
-                    val mime = fmt.get("mimeType")?.asString ?: ""
-                    val url = fmt.get("url")?.asString
-                    val bitrate = fmt.get("bitrate")?.asInt ?: 0
-                    if (mime.contains("audio") && !url.isNullOrBlank()) {
-                        if (bitrate > maxBitrate) {
-                            maxBitrate = bitrate
-                            bestAudio = url
-                        }
-                    }
-                }
-                if (!bestAudio.isNullOrBlank()) return bestAudio
-            }
             null
         } catch (e: Exception) {
             e.printStackTrace()
@@ -395,7 +420,7 @@ object YouTubeEngine {
         }
     }
 
-    private suspend fun fetchAudioStreamUrlAndroidVr(videoId: String): String? {
+    private suspend fun fetchAudioStreamUrlAndroidVr(videoId: String, isEconomyMode: Boolean): String? {
         return try {
             val (visitorId, sts) = ensureVisitorAndSts()
 
@@ -453,33 +478,47 @@ object YouTubeEngine {
             val streamingData = root.getAsJsonObject("streamingData") ?: return null
             val formats = streamingData.getAsJsonArray("adaptiveFormats") ?: return null
 
-            var aacUrl: String? = null
-            var bestAudioUrl: String? = null
-            var highestBitrate = 0
+            var selectedAudioUrl: String? = null
+            var selectedBitrate = if (isEconomyMode) Int.MAX_VALUE else 0
 
             for (elem in formats) {
                 val fmt = elem.asJsonObject
                 val mime = fmt.get("mimeType")?.asString ?: ""
                 if (mime.contains("audio")) {
                     val url = fmt.get("url")?.asString
-                    val itag = fmt.get("itag")?.asInt ?: 0
                     val bitrate = fmt.get("bitrate")?.asInt ?: 0
                     if (!url.isNullOrBlank()) {
-                        if (itag == 140) {
-                            aacUrl = url
-                        }
-                        if (bitrate > highestBitrate) {
-                            highestBitrate = bitrate
-                            bestAudioUrl = url
+                        if (isEconomyMode) {
+                            if (bitrate < selectedBitrate) {
+                                selectedBitrate = bitrate
+                                selectedAudioUrl = url
+                            }
+                        } else {
+                            if (bitrate > selectedBitrate) {
+                                selectedBitrate = bitrate
+                                selectedAudioUrl = url
+                            }
                         }
                     }
                 }
             }
-            aacUrl ?: bestAudioUrl
+            selectedAudioUrl
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
+    }
+
+    suspend fun getMoodTracks(mood: String): List<Track> = withContext(Dispatchers.IO) {
+        val query = when (mood.lowercase()) {
+            "для отдыха", "relax" -> "Музыка для отдыха релакс"
+            "энергия", "energize" -> "Энергичная музыка хиты"
+            "тренировка", "workout" -> "Музыка для тренировок мотивация"
+            "фокус", "focus" -> "Музыка для концентрации учебы lofi"
+            "в дорогу", "commute" -> "Музыка в машину дорогу"
+            else -> "Популярная музыка топ чарт"
+        }
+        search(query, songsOnly = true)
     }
 
     fun extractPlaylistId(urlOrId: String): String? {

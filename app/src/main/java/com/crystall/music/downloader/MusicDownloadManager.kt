@@ -100,13 +100,12 @@ class MusicDownloadManager private constructor(private val context: Context) {
         try {
             dbHelper.insertOrUpdateTrack(track)
 
-            // For SoundCloud use the progressive-only download URL.
-            // For YouTube use the standard resolver (already returns a direct URL).
+            val isEconomy = dbHelper.isEconomyMode()
             val streamUrl = when (track.source) {
                 AudioSource.SOUNDCLOUD -> SoundCloudEngine.getDownloadUrl(track)
                 else -> {
                     if (!track.localPath.isNullOrBlank()) track.localPath
-                    else YouTubeEngine.getAudioStreamUrl(track.id)
+                    else YouTubeEngine.getAudioStreamUrl(track.id, isEconomy)
                 }
             }
 
@@ -119,8 +118,8 @@ class MusicDownloadManager private constructor(private val context: Context) {
             val extension = when {
                 track.source == AudioSource.SOUNDCLOUD -> "mp3"
                 streamUrl.contains(".mp3") -> "mp3"
-                streamUrl.contains("webm") || streamUrl.contains("itag=251") -> "webm"
-                else -> "mp4"
+                streamUrl.contains("webm") || streamUrl.contains("itag=251") || streamUrl.contains("itag=249") || streamUrl.contains("itag=250") -> "webm"
+                else -> "m4a"
             }
             val targetFile = File(musicDir, "${sanitizedId}.$extension")
 

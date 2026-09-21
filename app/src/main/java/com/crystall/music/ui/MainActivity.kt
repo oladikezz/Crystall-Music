@@ -104,6 +104,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val showTastePicker by viewModel.showTastePicker.collectAsState()
     val currentLyrics by viewModel.currentLyrics.collectAsState()
     val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsState()
+    val selectedMood by viewModel.selectedMood.collectAsState()
+    val isEconomyMode by viewModel.isEconomyMode.collectAsState()
+    val dislikedTrackIds by viewModel.dislikedTrackIds.collectAsState()
+    val relatedTracks by viewModel.relatedTracks.collectAsState()
 
     val playerManager = viewModel.playerManager
     val currentTrack by playerManager.currentTrack.collectAsState()
@@ -127,7 +131,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(YtBackground)
     ) {
         // Main Screen Content with smooth crossfade
         Box(modifier = Modifier.fillMaxSize()) {
@@ -149,6 +153,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         favoriteIds = favoriteIds,
                         isLoading = isLoadingTrending,
                         hasCustomTastes = favoriteArtists.isNotEmpty(),
+                        selectedMood = selectedMood,
+                        isEconomyMode = isEconomyMode,
+                        onSelectMood = { mood -> viewModel.selectMood(mood) },
+                        onToggleEconomyMode = { viewModel.toggleEconomyMode() },
                         onTrackClick = { track, q ->
                             playerManager.playTrack(track, q)
                             viewModel.showFullPlayer()
@@ -243,32 +251,27 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // iOS 27 Floating Dynamic Island Tab Bar
+            // YouTube Music Bottom Navigation Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .height(60.dp)
                         .shadow(
-                            elevation = 24.dp,
-                            shape = RoundedCornerShape(32.dp),
-                            spotColor = Color.Black.copy(alpha = 0.7f)
+                            elevation = 16.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            spotColor = Color.Black.copy(alpha = 0.8f)
                         ),
-                    shape = RoundedCornerShape(32.dp),
-                    color = IosDynamicIsland,
+                    shape = RoundedCornerShape(20.dp),
+                    color = YtSurface,
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color(0x4DFFFFFF),
-                                Color(0x1AFFFFFF)
-                            )
-                        )
+                        color = YtSurfaceBorder
                     )
                 ) {
                     Row(
@@ -279,16 +282,16 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
                         val items = listOf(
-                            Triple(0, "Слушать", if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home),
+                            Triple(0, "Главная", if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home),
                             Triple(1, "Поиск", Icons.Default.Search),
                             Triple(2, "Импорт", if (currentTab == 2) Icons.Filled.AddCircle else Icons.Outlined.AddCircleOutline),
-                            Triple(3, "Медиатека", if (currentTab == 3) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic)
+                            Triple(3, "Фонотека", if (currentTab == 3) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic)
                         )
 
                         for ((tabIndex, label, icon) in items) {
                             val isSelected = currentTab == tabIndex
                             val scale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.06f else 1f,
+                                targetValue = if (isSelected) 1.05f else 1f,
                                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                 label = "tab_scale_$tabIndex"
                             )
@@ -296,14 +299,9 @@ fun MainAppScreen(viewModel: MainViewModel) {
                             Box(
                                 modifier = Modifier
                                     .scale(scale)
-                                    .clip(RoundedCornerShape(22.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(
-                                        if (isSelected) Color(0x33FFFFFF) else Color.Transparent
-                                    )
-                                    .border(
-                                        width = if (isSelected) 0.5.dp else 0.dp,
-                                        color = if (isSelected) Color(0x40FFFFFF) else Color.Transparent,
-                                        shape = RoundedCornerShape(22.dp)
+                                        if (isSelected) Color(0x28FFFFFF) else Color.Transparent
                                     )
                                     .clickable { viewModel.setTab(tabIndex) }
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -316,7 +314,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = label,
-                                        tint = if (isSelected) Color.White else IosTextSecondary,
+                                        tint = if (isSelected) Color.White else YtTextSecondary,
                                         modifier = Modifier.size(22.dp)
                                     )
                                     if (isSelected) {
@@ -354,14 +352,20 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 positionMs = currentPosition,
                 durationMs = duration,
                 isFavorite = favoriteIds.contains(track.id),
+                isDisliked = dislikedTrackIds.contains(track.id),
                 isShuffle = isShuffle,
                 repeatMode = repeatMode,
                 queue = queue,
                 downloadProgress = downloadStates[track.id],
                 lyricsResult = currentLyrics,
                 isLoadingLyrics = isLoadingLyrics,
+                relatedTracks = relatedTracks,
                 sleepTimerRemainingMs = sleepTimerRemainingMs,
                 isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
+                isEndlessRadioEnabled = isEndlessRadioEnabled,
+                isEconomyMode = isEconomyMode,
+                onToggleEconomyMode = { viewModel.toggleEconomyMode() },
+                onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
                 onOpenPlayerOptions = { showPlayerOptions = true },
                 onDismiss = { viewModel.hideFullPlayer() },
                 onPlayPauseClick = { playerManager.togglePlayPause() },
@@ -369,6 +373,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 onPreviousClick = { playerManager.skipPrevious() },
                 onSeekTo = { pos -> playerManager.seekTo(pos) },
                 onFavoriteClick = { viewModel.toggleFavorite(track) },
+                onDislikeClick = { viewModel.toggleDislike(track) },
                 onShuffleClick = { playerManager.toggleShuffle() },
                 onRepeatClick = { playerManager.cycleRepeatMode() },
                 onDownloadClick = { viewModel.downloadTrack(track) },
@@ -414,7 +419,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
             )
         }
 
-        // Player Options Modal Sheet (Sleep Timer, Playback Speed, Endless Radio)
+        // Player Options Modal Sheet (Sleep Timer, Playback Speed, Endless Radio, Data Saver)
         AnimatedVisibility(
             visible = showPlayerOptions,
             enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(200)),
@@ -425,11 +430,13 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
                 isEndlessRadioEnabled = isEndlessRadioEnabled,
                 playbackSpeed = playbackSpeed,
+                isEconomyMode = isEconomyMode,
                 onSetSleepTimer = { minutes -> playerManager.setSleepTimer(minutes) },
                 onSetSleepTimerEndOfTrack = { playerManager.setSleepTimerUntilEndOfTrack() },
                 onCancelSleepTimer = { playerManager.cancelSleepTimer() },
                 onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
                 onSetPlaybackSpeed = { speed -> playerManager.setPlaybackSpeed(speed) },
+                onToggleEconomyMode = { viewModel.toggleEconomyMode() },
                 onDismiss = { showPlayerOptions = false }
             )
         }

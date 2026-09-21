@@ -61,8 +61,19 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val mediaSourceFactory = DefaultMediaSourceFactory(context)
         .setDataSourceFactory(upstreamDataSourceFactory)
 
+    private val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+        .setBufferDurationsMs(
+            1500,   // minBufferMs (1.5s)
+            30000,  // maxBufferMs (30s)
+            1000,   // bufferForPlaybackMs (1s)
+            1500    // bufferForPlaybackAfterRebufferMs (1.5s)
+        )
+        .setPrioritizeTimeOverSizeThresholds(true)
+        .build()
+
     val player: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(mediaSourceFactory)
+        .setLoadControl(loadControl)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -111,6 +122,12 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     private val _playbackSpeed = MutableStateFlow(1.0f)
     val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    private val _isEconomyMode = MutableStateFlow(dbHelper.isEconomyMode())
+    val isEconomyMode: StateFlow<Boolean> = _isEconomyMode.asStateFlow()
+
+    private val _dislikedTrackIds = MutableStateFlow(dbHelper.getDislikedTrackIds())
+    val dislikedTrackIds: StateFlow<Set<String>> = _dislikedTrackIds.asStateFlow()
 
     private var progressTrackerJob: Job? = null
     private var sleepTimerJob: Job? = null
@@ -180,7 +197,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 if (dbTrack?.isDownloaded == true && !dbTrack.localPath.isNullOrBlank()) {
                     playableUri = dbTrack.localPath
                 } else {
-                    playableUri = UniversalMusicResolver.getStreamUrlForTrack(track)
+                    playableUri = UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
                 }
             }
 
@@ -195,10 +212,14 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 return@launch
             }
 
+            val artworkUrl = if (track.coverUrl.isNotBlank()) {
+                YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, _isEconomyMode.value)
+            } else null
+
             val metadata = MediaMetadata.Builder()
                 .setTitle(track.title)
                 .setArtist(track.artist)
-                .setArtworkUri(if (track.coverUrl.isNotBlank()) Uri.parse(track.coverUrl) else null)
+                .setArtworkUri(if (!artworkUrl.isNullOrBlank()) Uri.parse(artworkUrl) else null)
                 .build()
 
             val mediaItemBuilder = MediaItem.Builder()
@@ -206,9 +227,9 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 .setMediaMetadata(metadata)
 
             if (playableUri.startsWith("http")) {
-                if (playableUri.contains("itag=251") || playableUri.contains("webm")) {
+                if (playableUri.contains("itag=251") || playableUri.contains("itag=249") || playableUri.contains("itag=250") || playableUri.contains("webm")) {
                     mediaItemBuilder.setMimeType(MimeTypes.AUDIO_WEBM)
-                } else if (playableUri.contains("itag=18") || playableUri.contains("itag=140") || playableUri.contains("mime=audio%2Fmp4") || playableUri.contains("mime=video%2Fmp4")) {
+                } else if (playableUri.contains("itag=18") || playableUri.contains("itag=140") || playableUri.contains("itag=139") || playableUri.contains("mime=audio%2Fmp4") || playableUri.contains("mime=video%2Fmp4")) {
                     mediaItemBuilder.setMimeType(MimeTypes.AUDIO_MP4)
                 }
             }
@@ -436,6 +457,25 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private fun stopProgressTracker() {
         progressTrackerJob?.cancel()
         progressTrackerJob = null
+    }
+
+    fun toggleEconomyMode() {
+        val newValue = !_isEconomyMode.value
+        _isEconomyMode.value = newValue
+        dbHelper.setEconomyMode(newValue)
+    }
+
+    fun setEconomyMode(enabled: Boolean) {
+        _isEconomyMode.value = enabled
+        dbHelper.setEconomyMode(enabled)
+    }
+
+    fun toggleDislike(trackId: String) {
+        dbHelper.toggleDislike(trackId)
+        _dislikedTrackIds.value = dbHelper.getDislikedTrackIds()
+        if (_currentTrack.value?.id == trackId && _dislikedTrackIds.value.contains(trackId)) {
+            skipNext()
+        }
     }
 
     fun release() {
