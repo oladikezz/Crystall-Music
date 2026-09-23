@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -48,6 +48,21 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <!-- Home Screen App Widget -->
+        <receiver
+            android:name=".widget.CrystallMusicWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.crystall.music.widget.ACTION_PLAY_PAUSE" />
+                <action android:name="com.crystall.music.widget.ACTION_NEXT" />
+                <action android:name="com.crystall.music.widget.ACTION_PREV" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/crystall_music_widget_info" />
+        </receiver>
 
     </application>
 

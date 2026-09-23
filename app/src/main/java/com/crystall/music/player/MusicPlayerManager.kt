@@ -137,7 +137,18 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     init {
         try {
-            mediaSession = MediaSession.Builder(context, player).build()
+            val sessionIntent = Intent(context, com.crystall.music.ui.MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(
+                context,
+                0,
+                sessionIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            mediaSession = MediaSession.Builder(context, player)
+                .setSessionActivity(pendingIntent)
+                .build()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -151,6 +162,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 } else {
                     stopProgressTracker()
                 }
+                com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -160,6 +172,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 } else if (playbackState == Player.STATE_ENDED) {
                     onTrackEnded()
                 }
+                com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
@@ -176,8 +189,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     private fun startPlaybackService() {
         try {
-            val intent = Intent(context, PlaybackService::class.java)
-            context.startService(intent)
+            PlaybackService.start(context)
         } catch (_: Exception) {}
     }
 
@@ -228,10 +240,37 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, _isEconomyMode.value)
                 } else null
 
+                // Load artwork bytes for lock screen display
+                var artworkBytes: ByteArray? = null
+                if (!artworkUrl.isNullOrBlank()) {
+                    try {
+                        val imageLoader = coil.ImageLoader(context)
+                        val request = coil.request.ImageRequest.Builder(context)
+                            .data(artworkUrl)
+                            .size(500, 500)
+                            .allowHardware(false)
+                            .build()
+                        val result = imageLoader.execute(request)
+                        if (result is coil.request.SuccessResult) {
+                            val bitmap = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                            if (bitmap != null) {
+                                val stream = java.io.ByteArrayOutputStream()
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, stream)
+                                artworkBytes = stream.toByteArray()
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+
                 val metadata = MediaMetadata.Builder()
                     .setTitle(track.title)
                     .setArtist(track.artist)
                     .setArtworkUri(if (!artworkUrl.isNullOrBlank()) Uri.parse(artworkUrl) else null)
+                    .apply {
+                        if (artworkBytes != null) {
+                            setArtworkData(artworkBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        }
+                    }
                     .build()
 
                 val mediaItemBuilder = MediaItem.Builder()
@@ -255,6 +294,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     player.prepare()
                     player.playWhenReady = true
                     player.play()
+                    com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
                 }
 
                 // Preload next track URL in the background for instant transition
@@ -332,6 +372,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
         _currentPosition.value = 0L
         _duration.value = 0L
         stopProgressTracker()
+        com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
     }
 
     fun seekTo(positionMs: Long) {

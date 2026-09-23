@@ -1,3 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">Crystall Music</string>
+    <string name="playback_notification_channel_name">Воспроизведение музыки</string>
 </resources>
