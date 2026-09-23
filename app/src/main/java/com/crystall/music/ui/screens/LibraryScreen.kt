@@ -4,10 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -25,6 +28,9 @@ import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.components.TrackItem
 import com.crystall.music.ui.theme.*
 
+/**
+ * 1:1 YouTube Music Library Screen
+ */
 @Composable
 fun LibraryScreen(
     currentTrack: Track?,
@@ -41,67 +47,89 @@ fun LibraryScreen(
     onPlaylistClick: (Playlist) -> Unit,
     onDeletePlaylistClick: (Playlist) -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Offline Downloads, 1 = Playlists, 2 = Favorites
+    var selectedTab by remember { mutableStateOf(0) } // 0 = Downloads, 1 = Playlists, 2 = Favorites
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(YtBackground)
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
-        // iOS Large Title
-        Text(
-            text = "Медиатека",
-            color = TextPrimary,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.5).sp,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-        )
-
-        // iOS Segmented Control
+        // YouTube Music Library Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0x18FFFFFF))
-                .padding(3.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            val tabs = listOf(
-                "Офлайн (${downloadedTracks.size})",
-                "Плейлисты (${playlists.size})",
-                "Любимые (${favoriteTracks.size})"
+            Text(
+                text = "Фонотека",
+                color = YtTextPrimary,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp
             )
-            for ((index, title) in tabs.withIndex()) {
+        }
+
+        // YouTube Music Category Filter Chips
+        val tabs = listOf(
+            "Скачанные (${downloadedTracks.size})",
+            "Плейлисты (${playlists.size})",
+            "Понравившиеся (${favoriteTracks.size})"
+        )
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(tabs.indices.toList()) { index ->
                 val isSelected = selectedTab == index
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(if (isSelected) Color(0x35FFFFFF) else Color.Transparent)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSelected) Color.White else YtSurface)
                         .clickable { selectedTab = index }
-                        .padding(vertical = 8.dp),
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = title,
-                        color = if (isSelected) Color.White else IosTextSecondary,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        text = tabs[index],
+                        color = if (isSelected) Color.Black else YtTextPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        // Sorting Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.SwapVert,
+                contentDescription = "Sort",
+                tint = YtTextSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Недавние действия",
+                color = YtTextSecondary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
 
         // Content
         when (selectedTab) {
             0 -> {
-                // Offline Downloads
+                // Downloads
                 if (downloadedTracks.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -113,22 +141,22 @@ fun LibraryScreen(
                             Icon(
                                 imageVector = Icons.Default.FileDownloadOff,
                                 contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(54.dp)
+                                tint = YtTextSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(56.dp)
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = "Нет скачанных треков",
-                                color = TextPrimary,
+                                color = YtTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Скачивайте треки и слушайте их без подключения к интернету",
-                                color = TextMuted,
+                                text = "Скачивайте треки и слушайте их без подключения к сети",
+                                color = YtTextSecondary,
                                 fontSize = 13.sp,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -138,29 +166,34 @@ fun LibraryScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Доступно офлайн: ${downloadedTracks.size} треков",
+                                    text = "Доступно офлайн: ${downloadedTracks.size}",
                                     color = GreenSuccess,
                                     fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.Medium
                                 )
 
                                 Button(
                                     onClick = { onTrackClick(downloadedTracks.first(), downloadedTracks) },
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(18.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = GreenSuccess,
-                                        contentColor = Color.Black
+                                        containerColor = YtSurface,
+                                        contentColor = YtTextPrimary
                                     ),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                                 ) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = Color.White
+                                    )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Слушать всё", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("Перемешать всё", fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 }
                             }
                         }
@@ -193,24 +226,24 @@ fun LibraryScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.LibraryMusic,
+                                imageVector = Icons.Default.QueueMusic,
                                 contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(54.dp)
+                                tint = YtTextSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(56.dp)
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Плейлисты пока не импортированы",
-                                color = TextPrimary,
+                                text = "Плейлистов пока нет",
+                                color = YtTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Перейдите во вкладку «Импорт» и вставьте ссылку на ваш плейлист",
-                                color = TextMuted,
+                                text = "Импортируйте плейлисты из YouTube Music во вкладке «Импорт»",
+                                color = YtTextSecondary,
                                 fontSize = 13.sp,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -221,14 +254,14 @@ fun LibraryScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { onPlaylistClick(playlist) }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(SurfaceElevated),
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(YtSurface),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!playlist.coverUrl.isNullOrBlank()) {
@@ -242,7 +275,7 @@ fun LibraryScreen(
                                         Icon(
                                             imageVector = Icons.Default.QueueMusic,
                                             contentDescription = null,
-                                            tint = Color.White.copy(alpha = 0.5f),
+                                            tint = YtTextSecondary,
                                             modifier = Modifier.size(28.dp)
                                         )
                                     }
@@ -253,14 +286,14 @@ fun LibraryScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = playlist.title,
-                                        color = TextPrimary,
+                                        color = YtTextPrimary,
                                         fontSize = 15.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.Medium
                                     )
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
-                                        text = "${playlist.author} • ${playlist.trackCount} треков",
-                                        color = TextSecondary,
+                                        text = "Плейлист • ${playlist.trackCount} треков",
+                                        color = YtTextSecondary,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -269,7 +302,7 @@ fun LibraryScreen(
                                     Icon(
                                         imageVector = Icons.Default.DeleteOutline,
                                         contentDescription = "Delete",
-                                        tint = TextMuted,
+                                        tint = YtTextSecondary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -290,23 +323,24 @@ fun LibraryScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.FavoriteBorder,
+                                imageVector = Icons.Default.ThumbUpOffAlt,
                                 contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(54.dp)
+                                tint = YtTextSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(56.dp)
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Любимых треков пока нет",
-                                color = TextPrimary,
+                                text = "Понравившихся треков пока нет",
+                                color = YtTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Нажмите сердечко на любом треке, чтобы добавить его сюда",
-                                color = TextMuted,
-                                fontSize = 13.sp
+                                text = "Нажмите «Нравится» в плеере, чтобы сохранить треки здесь",
+                                color = YtTextSecondary,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }

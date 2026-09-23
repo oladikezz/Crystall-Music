@@ -3,7 +3,6 @@ package com.crystall.music.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,13 +19,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.crystall.music.data.model.AudioSource
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.theme.*
 
-import androidx.compose.foundation.border
-
+/**
+ * 1:1 YouTube Music Track Row
+ */
 @Composable
 fun TrackItem(
     track: Track,
@@ -42,20 +41,19 @@ fun TrackItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (isCurrentTrack) Color(0x1EFFFFFF) else Color.Transparent)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isCurrentTrack) Color(0x1AFFFFFF) else Color.Transparent)
             .clickable { onTrackClick() }
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // iOS Style Squircle Artwork
+        // YouTube Music 48x48dp square artwork
         Box(
             modifier = Modifier
-                .size(54.dp)
-                .clip(RoundedCornerShape(13.dp))
-                .border(0.5.dp, Color(0x28FFFFFF), RoundedCornerShape(13.dp))
-                .background(SurfaceElevated),
+                .size(48.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(YtSurface),
             contentAlignment = Alignment.Center
         ) {
             if (track.coverUrl.isNotBlank()) {
@@ -69,8 +67,8 @@ fun TrackItem(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(26.dp)
+                    tint = YtTextSecondary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -78,15 +76,15 @@ fun TrackItem(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.55f)),
+                        .background(Color.Black.copy(alpha = 0.6f)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isPlaying) {
                         EqualizerVisualizer(
                             isPlaying = true,
-                            barCount = 4,
+                            barCount = 3,
                             barWidth = 2.5.dp,
-                            maxHeight = 18.dp,
+                            maxHeight = 16.dp,
                             barSpacing = 1.5.dp
                         )
                     } else {
@@ -94,14 +92,14 @@ fun TrackItem(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         // Title and Artist
         Column(
@@ -109,9 +107,9 @@ fun TrackItem(
         ) {
             Text(
                 text = track.title,
-                color = TextPrimary,
+                color = if (isCurrentTrack) YtRed else YtTextPrimary,
                 fontSize = 15.sp,
-                fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium,
+                fontWeight = if (isCurrentTrack) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -121,8 +119,8 @@ fun TrackItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = track.artist,
-                    color = TextSecondary,
-                    fontSize = 13.sp,
+                    color = YtTextSecondary,
+                    fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -131,7 +129,7 @@ fun TrackItem(
                 if (track.durationMs > 0) {
                     Text(
                         text = " • ${track.durationFormatted}",
-                        color = TextMuted,
+                        color = YtTextSecondary.copy(alpha = 0.7f),
                         fontSize = 12.sp
                     )
                 }
@@ -140,17 +138,17 @@ fun TrackItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Actions: Favorite & Download
+        // Thumbs Up / Favorite Action
         if (onFavoriteClick != null) {
             IconButton(
                 onClick = onFavoriteClick,
                 modifier = Modifier.size(36.dp)
             ) {
                 Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    imageVector = if (isFavorite) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
                     contentDescription = "Favorite",
-                    tint = if (isFavorite) Color.Red else TextSecondary,
-                    modifier = Modifier.size(20.dp)
+                    tint = if (isFavorite) Color.White else YtTextSecondary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -166,7 +164,7 @@ fun TrackItem(
             ) {
                 CircularProgressIndicator(
                     progress = { (downloadProgress?.progressPercent ?: 0) / 100f },
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                     color = Color.White,
                     strokeWidth = 2.dp
                 )
@@ -180,7 +178,7 @@ fun TrackItem(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Downloaded",
                     tint = GreenSuccess,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         } else {
@@ -191,8 +189,8 @@ fun TrackItem(
                 Icon(
                     imageVector = Icons.Outlined.Download,
                     contentDescription = "Download",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(20.dp)
+                    tint = YtTextSecondary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

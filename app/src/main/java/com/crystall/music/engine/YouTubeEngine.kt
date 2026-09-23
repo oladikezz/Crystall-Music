@@ -28,16 +28,16 @@ object YouTubeEngine {
     @Volatile
     private var cachedVisitorData: String = "CgtUODJLS25FMmROSSiT2LDVBjIKCgJBWhIEGgAgOg=="
     @Volatile
-    private var cachedSts: Int = 20710
-    @Volatile
     private var lastFetchTime: Long = 0L
 
-    suspend fun ensureVisitorAndSts(): Pair<String, Int> = withContext(Dispatchers.IO) {
+    // In-memory stream URL cache: videoId -> (url, expiryTimestamp)
+    private val streamUrlCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Long>>()
+
+    suspend fun getVisitorData(): String = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
-        if (cachedVisitorData.isNotBlank() && (now - lastFetchTime) < 1_800_000L) {
-            return@withContext Pair(cachedVisitorData, cachedSts)
+        if (cachedVisitorData.isNotBlank() && (now - lastFetchTime) < 3_600_000L) {
+            return@withContext cachedVisitorData
         }
-        // Strategy 1: Fetch visitorData via clean JSON API from YouTube Music
         try {
             val browsePayload = """{"context":{"client":{"clientName":"WEB_REMIX","clientVersion":"1.20240901.01.00","hl":"en"}},"browseId":"FEmusic_home"}"""
             val req = Request.Builder()
@@ -52,37 +52,13 @@ object YouTubeEngine {
                 val root = JsonParser.parseString(body).asJsonObject
                 val vis = root.getAsJsonObject("responseContext")?.get("visitorData")?.asString
                 if (!vis.isNullOrBlank()) {
-                    cachedVisitorData = java.net.URLDecoder.decode(vis, "UTF-8")
+                    cachedVisitorData = vis
                     lastFetchTime = now
                 }
             }
         } catch (_: Exception) {}
-
-        // Strategy 2: Extract dynamic STS from youtube.com if needed
-        try {
-            val req = Request.Builder()
-                .url("https://www.youtube.com")
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build()
-            val resp = httpClient.newCall(req).execute()
-            val html = resp.body?.string() ?: ""
-            val stsMatcher = Pattern.compile("\"STS\":\\s*(\\d+)").matcher(html)
-            if (stsMatcher.find()) {
-                cachedSts = stsMatcher.group(1)?.toIntOrNull() ?: 20710
-            }
-            if (cachedVisitorData.isBlank()) {
-                val visMatcher = Pattern.compile("\"(?:visitorData|VISITOR_DATA)\":\\s*\"([^\"]+)\"").matcher(html)
-                if (visMatcher.find()) {
-                    cachedVisitorData = visMatcher.group(1) ?: cachedVisitorData
-                }
-            }
-            lastFetchTime = now
-        } catch (_: Exception) {}
-
-        Pair(cachedVisitorData, cachedSts)
+        cachedVisitorData
     }
-
-    suspend fun getVisitorData(): String = ensureVisitorAndSts().first
 
     fun upgradeThumbnailUrl(rawUrl: String, isEconomyMode: Boolean = false): String {
         if (rawUrl.isBlank()) return rawUrl
@@ -290,27 +266,29 @@ object YouTubeEngine {
     }
 
     suspend fun getAudioStreamUrl(videoId: String, isEconomyMode: Boolean = true): String? = withContext(Dispatchers.IO) {
-        val result = fetchAudioStreamUrl(videoId, isEconomyMode)
-        if (result != null) return@withContext result
-        // If first attempt failed, refresh visitor data and retry once
-        lastFetchTime = 0L
-        ensureVisitorAndSts()
-        fetchAudioStreamUrl(videoId, isEconomyMode)
+        val now = System.currentTimeMillis()
+        val cached = streamUrlCache[videoId]
+        if (cached != null && now < cached.second) {
+            return@withContext cached.first
+        }
+
+        val url = fetchAudioStreamUrl(videoId, isEconomyMode)
+        if (!url.isNullOrBlank()) {
+            streamUrlCache[videoId] = Pair(url, now + 3 * 3600 * 1000L)
+            return@withContext url
+        }
+        null
     }
 
     private suspend fun fetchAudioStreamUrl(videoId: String, isEconomyMode: Boolean): String? {
-        // First try the official ANDROID client with pure audio streams
         val androidUrl = fetchAudioStreamUrlAndroid(videoId, isEconomyMode)
         if (!androidUrl.isNullOrBlank()) return androidUrl
 
-        // Fallback to ANDROID_VR client
         return fetchAudioStreamUrlAndroidVr(videoId, isEconomyMode)
     }
 
     private suspend fun fetchAudioStreamUrlAndroid(videoId: String, isEconomyMode: Boolean): String? {
         return try {
-            val (visitorId, sts) = ensureVisitorAndSts()
-
             val jsonPayload = """
             {
                 "context": {
@@ -322,15 +300,13 @@ object YouTubeEngine {
                         "osName": "Android",
                         "osVersion": "11",
                         "hl": "en",
-                        "gl": "US",
-                        "visitorData": "$visitorId"
+                        "gl": "US"
                     }
                 },
                 "videoId": "$videoId",
                 "playbackContext": {
                     "contentPlaybackContext": {
-                        "html5Preference": "HTML5_PREF_WANTS",
-                        "signatureTimestamp": $sts
+                        "html5Preference": "HTML5_PREF_WANTS"
                     }
                 },
                 "contentCheckOk": true,
@@ -338,19 +314,15 @@ object YouTubeEngine {
             }
             """.trimIndent()
 
-            val reqBuilder = Request.Builder()
+            val request = Request.Builder()
                 .url("https://www.youtube.com/youtubei/v1/player")
                 .header("X-YouTube-Client-Name", "3")
                 .header("X-YouTube-Client-Version", "21.02.35")
-                .header("Origin", "https://www.youtube.com")
                 .header("User-Agent", "com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip")
                 .header("Content-Type", "application/json")
+                .post(jsonPayload.toRequestBody(JSON_MEDIA))
+                .build()
 
-            if (visitorId.isNotBlank()) {
-                reqBuilder.header("X-Goog-Visitor-Id", visitorId)
-            }
-
-            val request = reqBuilder.post(jsonPayload.toRequestBody(JSON_MEDIA)).build()
             val response = httpClient.newCall(request).execute()
             if (!response.isSuccessful) return null
             val body = response.body?.string() ?: return null
@@ -361,7 +333,7 @@ object YouTubeEngine {
 
             val streamingData = root.getAsJsonObject("streamingData") ?: return null
 
-            // 1. Prioritize pure audio streams from adaptiveFormats (eliminates video data transfer: ~1.2MB vs ~20MB)
+            // 1. Try pure audio streams from adaptiveFormats if direct url is available
             val adaptive = streamingData.getAsJsonArray("adaptiveFormats")
             if (adaptive != null) {
                 var selectedAudioUrl: String? = null
@@ -374,13 +346,11 @@ object YouTubeEngine {
                     val bitrate = fmt.get("bitrate")?.asInt ?: 0
                     if (mime.contains("audio") && !url.isNullOrBlank()) {
                         if (isEconomyMode) {
-                            // Economy mode: lowest bitrate pure audio (Opus 50-70kbps or AAC 48kbps)
                             if (bitrate < selectedBitrate) {
                                 selectedBitrate = bitrate
                                 selectedAudioUrl = url
                             }
                         } else {
-                            // Normal mode: highest bitrate pure audio (Opus 160kbps or AAC 128kbps)
                             if (bitrate > selectedBitrate) {
                                 selectedBitrate = bitrate
                                 selectedAudioUrl = url
@@ -391,7 +361,7 @@ object YouTubeEngine {
                 if (!selectedAudioUrl.isNullOrBlank()) return selectedAudioUrl
             }
 
-            // 2. Fallback to standard combined formats if pure audio was not directly available
+            // 2. Direct format (itag 18: 360p MP4 with AAC stereo audio - reliable on all devices)
             val formats = streamingData.getAsJsonArray("formats")
             if (formats != null) {
                 var itag18Url: String? = null
@@ -422,8 +392,6 @@ object YouTubeEngine {
 
     private suspend fun fetchAudioStreamUrlAndroidVr(videoId: String, isEconomyMode: Boolean): String? {
         return try {
-            val (visitorId, sts) = ensureVisitorAndSts()
-
             val jsonPayload = """
             {
                 "context": {
@@ -438,15 +406,13 @@ object YouTubeEngine {
                         "osVersion": "12L",
                         "hl": "en",
                         "timeZone": "UTC",
-                        "utcOffsetMinutes": 0,
-                        "visitorData": "$visitorId"
+                        "utcOffsetMinutes": 0
                     }
                 },
                 "videoId": "$videoId",
                 "playbackContext": {
                     "contentPlaybackContext": {
-                        "html5Preference": "HTML5_PREF_WANTS",
-                        "signatureTimestamp": $sts
+                        "html5Preference": "HTML5_PREF_WANTS"
                     }
                 },
                 "contentCheckOk": true,
@@ -454,58 +420,51 @@ object YouTubeEngine {
             }
             """.trimIndent()
 
-            val reqBuilder = Request.Builder()
+            val request = Request.Builder()
                 .url("https://www.youtube.com/youtubei/v1/player")
                 .header("X-YouTube-Client-Name", "28")
                 .header("X-YouTube-Client-Version", "1.65.10")
                 .header("Origin", "https://www.youtube.com")
                 .header("User-Agent", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip")
                 .header("Content-Type", "application/json")
+                .post(jsonPayload.toRequestBody(JSON_MEDIA))
+                .build()
 
-            if (visitorId.isNotBlank()) {
-                reqBuilder.header("X-Goog-Visitor-Id", visitorId)
-            }
-
-            val request = reqBuilder.post(jsonPayload.toRequestBody(JSON_MEDIA)).build()
             val response = httpClient.newCall(request).execute()
             if (!response.isSuccessful) return null
             val body = response.body?.string() ?: return null
 
             val root = JsonParser.parseString(body).asJsonObject
-            val status = root.getAsJsonObject("playabilityStatus")?.get("status")?.asString
-            if (status != null && status != "OK") return null
-
             val streamingData = root.getAsJsonObject("streamingData") ?: return null
-            val formats = streamingData.getAsJsonArray("adaptiveFormats") ?: return null
-
-            var selectedAudioUrl: String? = null
-            var selectedBitrate = if (isEconomyMode) Int.MAX_VALUE else 0
+            val formats = streamingData.getAsJsonArray("formats") ?: streamingData.getAsJsonArray("adaptiveFormats") ?: return null
 
             for (elem in formats) {
                 val fmt = elem.asJsonObject
-                val mime = fmt.get("mimeType")?.asString ?: ""
-                if (mime.contains("audio")) {
-                    val url = fmt.get("url")?.asString
-                    val bitrate = fmt.get("bitrate")?.asInt ?: 0
-                    if (!url.isNullOrBlank()) {
-                        if (isEconomyMode) {
-                            if (bitrate < selectedBitrate) {
-                                selectedBitrate = bitrate
-                                selectedAudioUrl = url
-                            }
-                        } else {
-                            if (bitrate > selectedBitrate) {
-                                selectedBitrate = bitrate
-                                selectedAudioUrl = url
-                            }
-                        }
-                    }
+                val url = fmt.get("url")?.asString
+                if (!url.isNullOrBlank()) {
+                    return url
                 }
             }
-            selectedAudioUrl
+            null
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    suspend fun getRadioTracks(track: Track): List<Track> = withContext(Dispatchers.IO) {
+        try {
+            val query = "${track.artist} radio"
+            val results = search(query, songsOnly = true)
+            val filtered = results.filter { it.id != track.id }
+            if (filtered.size >= 5) return@withContext filtered
+
+            val artistResults = search(track.artist, songsOnly = true).filter { it.id != track.id }
+            if (artistResults.isNotEmpty()) return@withContext artistResults
+
+            getTrendingMusic().filter { it.id != track.id }
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 

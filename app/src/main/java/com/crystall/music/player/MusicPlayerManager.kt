@@ -131,6 +131,9 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     private var progressTrackerJob: Job? = null
     private var sleepTimerJob: Job? = null
+    private var playJob: Job? = null
+    private var radioJob: Job? = null
+    private var preloadJob: Job? = null
 
     init {
         try {
@@ -162,6 +165,11 @@ class MusicPlayerManager private constructor(private val context: Context) {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 error.printStackTrace()
                 _isBuffering.value = false
+                // Auto-advance on playback error so music never halts!
+                scope.launch(Dispatchers.Main) {
+                    delay(400)
+                    skipNext()
+                }
             }
         })
     }
@@ -174,78 +182,121 @@ class MusicPlayerManager private constructor(private val context: Context) {
     }
 
     fun playTrack(track: Track, newQueue: List<Track>? = null) {
-        if (newQueue != null) {
+        if (newQueue != null && newQueue.isNotEmpty()) {
             _queue.value = newQueue
-        } else if (_queue.value.none { it.id == track.id }) {
-            _queue.value = _queue.value + track
+        } else if (_queue.value.isEmpty() || _queue.value.none { it.id == track.id }) {
+            _queue.value = listOf(track)
         }
 
         _currentTrack.value = track
         _isBuffering.value = true
         _currentPosition.value = 0L
-        // Don't preset duration from track metadata — it may be 0 for YouTube tracks.
-        // The real duration will be set once the player reports STATE_READY.
         _duration.value = 0L
 
-        scope.launch {
-            // Resolve the playable URI before touching the player so the current
-            // track never gets interrupted by a stop() before the new one is ready.
-            var playableUri: String? = track.localPath
-            if (playableUri.isNullOrBlank()) {
-                // Check if downloaded in DB
-                val dbTrack = dbHelper.getTrack(track.id)
-                if (dbTrack?.isDownloaded == true && !dbTrack.localPath.isNullOrBlank()) {
-                    playableUri = dbTrack.localPath
-                } else {
-                    playableUri = UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
+        // Auto-populate radio queue if queue is very short (e.g. single tapped track)
+        if (_isEndlessRadioEnabled.value && _queue.value.size <= 2) {
+            autoPopulateRadioQueue(track)
+        }
+
+        playJob?.cancel()
+        playJob = scope.launch {
+            try {
+                var playableUri: String? = track.localPath
+                if (playableUri.isNullOrBlank()) {
+                    val dbTrack = dbHelper.getTrack(track.id)
+                    if (dbTrack?.isDownloaded == true && !dbTrack.localPath.isNullOrBlank()) {
+                        playableUri = dbTrack.localPath
+                    } else {
+                        playableUri = UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
+                    }
+                }
+
+                if (_currentTrack.value?.id != track.id) return@launch
+
+                if (playableUri.isNullOrBlank()) {
+                    // Cannot resolve track - don't halt, skip to next track
+                    withContext(Dispatchers.Main) {
+                        _isBuffering.value = false
+                        skipNext()
+                    }
+                    return@launch
+                }
+
+                dbHelper.addToHistory(track)
+
+                val artworkUrl = if (track.coverUrl.isNotBlank()) {
+                    YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, _isEconomyMode.value)
+                } else null
+
+                val metadata = MediaMetadata.Builder()
+                    .setTitle(track.title)
+                    .setArtist(track.artist)
+                    .setArtworkUri(if (!artworkUrl.isNullOrBlank()) Uri.parse(artworkUrl) else null)
+                    .build()
+
+                val mediaItemBuilder = MediaItem.Builder()
+                    .setUri(playableUri)
+                    .setMediaMetadata(metadata)
+
+                if (playableUri.startsWith("http")) {
+                    if (playableUri.contains("itag=251") || playableUri.contains("itag=249") || playableUri.contains("itag=250") || playableUri.contains("webm")) {
+                        mediaItemBuilder.setMimeType(MimeTypes.AUDIO_WEBM)
+                    } else if (playableUri.contains("itag=18") || playableUri.contains("itag=140") || playableUri.contains("itag=139") || playableUri.contains("mime=audio%2Fmp4") || playableUri.contains("mime=video%2Fmp4")) {
+                        mediaItemBuilder.setMimeType(MimeTypes.AUDIO_MP4)
+                    }
+                }
+                val mediaItem = mediaItemBuilder.build()
+
+                withContext(Dispatchers.Main) {
+                    if (_currentTrack.value?.id != track.id) return@withContext
+                    player.stop()
+                    player.clearMediaItems()
+                    player.setMediaItem(mediaItem, true)
+                    player.prepare()
+                    player.playWhenReady = true
+                    player.play()
+                }
+
+                // Preload next track URL in the background for instant transition
+                preloadNextTrack()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    _isBuffering.value = false
+                    skipNext()
                 }
             }
+        }
+    }
 
-            // Guard: if the user already switched to another track, abort.
-            if (_currentTrack.value?.id != track.id) return@launch
-
-            // Only record history once we know the track will actually play.
-            dbHelper.addToHistory(track)
-
-            if (playableUri.isNullOrBlank()) {
-                _isBuffering.value = false
-                return@launch
-            }
-
-            val artworkUrl = if (track.coverUrl.isNotBlank()) {
-                YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, _isEconomyMode.value)
-            } else null
-
-            val metadata = MediaMetadata.Builder()
-                .setTitle(track.title)
-                .setArtist(track.artist)
-                .setArtworkUri(if (!artworkUrl.isNullOrBlank()) Uri.parse(artworkUrl) else null)
-                .build()
-
-            val mediaItemBuilder = MediaItem.Builder()
-                .setUri(playableUri)
-                .setMediaMetadata(metadata)
-
-            if (playableUri.startsWith("http")) {
-                if (playableUri.contains("itag=251") || playableUri.contains("itag=249") || playableUri.contains("itag=250") || playableUri.contains("webm")) {
-                    mediaItemBuilder.setMimeType(MimeTypes.AUDIO_WEBM)
-                } else if (playableUri.contains("itag=18") || playableUri.contains("itag=140") || playableUri.contains("itag=139") || playableUri.contains("mime=audio%2Fmp4") || playableUri.contains("mime=video%2Fmp4")) {
-                    mediaItemBuilder.setMimeType(MimeTypes.AUDIO_MP4)
+    private fun autoPopulateRadioQueue(track: Track) {
+        radioJob?.cancel()
+        radioJob = scope.launch {
+            try {
+                val recommendations = YouTubeEngine.getRadioTracks(track)
+                val currentQueueIds = _queue.value.map { it.id }.toSet()
+                val freshTracks = recommendations.filter { !currentQueueIds.contains(it.id) }
+                if (freshTracks.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        _queue.value = _queue.value + freshTracks.take(15)
+                    }
                 }
-            }
-            val mediaItem = mediaItemBuilder.build()
+            } catch (_: Exception) {}
+        }
+    }
 
-            withContext(Dispatchers.Main) {
-                // Final guard on the main thread before we touch the player.
-                if (_currentTrack.value?.id != track.id) return@withContext
-                // Now it is safe to stop the previous playback and start the new one.
-                player.stop()
-                player.clearMediaItems()
-                player.setMediaItem(mediaItem)
-                player.prepare()
-                player.playWhenReady = true
-                player.play()
-            }
+    private fun preloadNextTrack() {
+        preloadJob?.cancel()
+        preloadJob = scope.launch {
+            try {
+                val q = _queue.value
+                val cur = _currentTrack.value ?: return@launch
+                val idx = q.indexOfFirst { it.id == cur.id }
+                if (idx != -1 && idx + 1 < q.size) {
+                    val nextTrack = q[idx + 1]
+                    UniversalMusicResolver.getStreamUrlForTrack(nextTrack, _isEconomyMode.value)
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -259,7 +310,6 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     player.play()
                 }
                 Player.STATE_IDLE -> {
-                    // Player was stopped (e.g. after queue ended). Re-prepare if we have a track.
                     _currentTrack.value?.let { playTrack(it) }
                 }
                 else -> player.play()
@@ -269,6 +319,9 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     fun stopAndClear() {
         try {
+            playJob?.cancel()
+            radioJob?.cancel()
+            preloadJob?.cancel()
             player.stop()
             player.clearMediaItems()
         } catch (_: Exception) {}
@@ -288,17 +341,42 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     fun skipNext() {
         val q = _queue.value
-        if (q.isEmpty()) return
-        val current = _currentTrack.value ?: return
+        val current = _currentTrack.value
+
+        if (q.isEmpty()) {
+            if (current != null && _isEndlessRadioEnabled.value) {
+                fetchMoreAndPlayNext(current)
+            }
+            return
+        }
+
+        if (current == null) {
+            playTrack(q.first())
+            return
+        }
 
         val currentIndex = q.indexOfFirst { it.id == current.id }
         if (_isShuffle.value && q.size > 1) {
-            val randomIdx = q.indices.filter { it != currentIndex }.random()
-            playTrack(q[randomIdx])
-        } else if (currentIndex != -1 && currentIndex + 1 < q.size) {
+            val validIndices = q.indices.filter { it != currentIndex }
+            if (validIndices.isNotEmpty()) {
+                playTrack(q[validIndices.random()])
+                return
+            }
+        }
+
+        if (currentIndex != -1 && currentIndex + 1 < q.size) {
             playTrack(q[currentIndex + 1])
+            if (q.size - (currentIndex + 1) <= 3 && _isEndlessRadioEnabled.value) {
+                fetchMoreRadioTracks(q.last())
+            }
         } else if (_repeatMode.value == 1 && q.isNotEmpty()) {
             playTrack(q.first())
+        } else if (_isEndlessRadioEnabled.value) {
+            fetchMoreAndPlayNext(current)
+        } else {
+            _currentPosition.value = 0L
+            player.seekTo(0)
+            player.pause()
         }
     }
 
@@ -339,7 +417,6 @@ class MusicPlayerManager private constructor(private val context: Context) {
             var remaining = totalMs
             while (isActive && remaining > 0) {
                 _sleepTimerRemainingMs.value = remaining
-                // Fade out in last 10 seconds
                 if (remaining <= 10000L) {
                     val vol = (remaining.toFloat() / 10000f).coerceIn(0f, 1f)
                     player.volume = vol
@@ -392,52 +469,54 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 player.play()
             }
             else -> {
-                val q = _queue.value
-                val current = _currentTrack.value
-                val currentIndex = if (current != null) q.indexOfFirst { it.id == current.id } else -1
-                val hasNext = _isShuffle.value && q.size > 1
-                    || currentIndex != -1 && currentIndex + 1 < q.size
-                    || _repeatMode.value == 1 && q.isNotEmpty()
+                skipNext()
+            }
+        }
+    }
 
-                if (hasNext) {
-                    skipNext()
-                } else if (_isEndlessRadioEnabled.value && current != null) {
-                    // Smart Endless Radio: auto-discover similar tracks from artist/mood!
-                    scope.launch {
-                        try {
-                            val recommendations = YouTubeEngine.search(current.artist, songsOnly = true)
-                            val nextTracks = recommendations.filter { rec ->
-                                rec.id != current.id && q.none { it.id == rec.id }
-                            }
-                            if (nextTracks.isNotEmpty()) {
-                                val nextTrack = nextTracks.first()
-                                withContext(Dispatchers.Main) {
-                                    _queue.value = _queue.value + nextTracks.take(5)
-                                    playTrack(nextTrack)
-                                }
-                            } else {
-                                withContext(Dispatchers.Main) {
-                                    _currentPosition.value = 0L
-                                    player.seekTo(0)
-                                    player.pause()
-                                }
-                            }
-                        } catch (_: Exception) {
-                            withContext(Dispatchers.Main) {
-                                _currentPosition.value = 0L
-                                player.seekTo(0)
-                                player.pause()
-                            }
-                        }
+    private fun fetchMoreAndPlayNext(current: Track) {
+        _isBuffering.value = true
+        scope.launch {
+            try {
+                val more = YouTubeEngine.getRadioTracks(current)
+                val currentIds = _queue.value.map { it.id }.toSet()
+                val fresh = more.filter { !currentIds.contains(it.id) }
+                if (fresh.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        _queue.value = _queue.value + fresh.take(15)
+                        playTrack(fresh.first())
                     }
                 } else {
-                    // End of queue — reset position so the UI shows 0:00 and
-                    // the Play button can restart the track via togglePlayPause.
+                    withContext(Dispatchers.Main) {
+                        _currentPosition.value = 0L
+                        player.seekTo(0)
+                        player.pause()
+                        _isBuffering.value = false
+                    }
+                }
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main) {
                     _currentPosition.value = 0L
                     player.seekTo(0)
                     player.pause()
+                    _isBuffering.value = false
                 }
             }
+        }
+    }
+
+    private fun fetchMoreRadioTracks(lastTrack: Track) {
+        scope.launch {
+            try {
+                val more = YouTubeEngine.getRadioTracks(lastTrack)
+                val currentIds = _queue.value.map { it.id }.toSet()
+                val fresh = more.filter { !currentIds.contains(it.id) }
+                if (fresh.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        _queue.value = _queue.value + fresh.take(10)
+                    }
+                }
+            } catch (_: Exception) {}
         }
     }
 

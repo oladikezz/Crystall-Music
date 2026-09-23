@@ -1,8 +1,10 @@
 package com.crystall.music.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -21,12 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.crystall.music.data.model.AudioSource
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.components.TrackItem
 import com.crystall.music.ui.theme.*
 
+/**
+ * 1:1 YouTube Music Search Screen
+ */
 @Composable
 fun SearchScreen(
     currentTrack: Track?,
@@ -43,88 +47,138 @@ fun SearchScreen(
     var searchQuery by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
+    val searchSuggestions = listOf(
+        "Хиты", "Новинки", "Хип-хоп", "Поп-музыка", "Рок", "Электроника",
+        "Для отдыха", "В дорогу", "Фокус", "Тренировка"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(YtBackground)
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
-        // iOS Large Title
-        Text(
-            text = "Поиск",
-            color = TextPrimary,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.5).sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-        )
-
-        // iOS Liquid Glass Capsule Search Bar
-        TextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Треки, альбомы, артисты...", color = IosTextSecondary) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = IosTextSecondary
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear",
-                            tint = IosTextSecondary
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = {
-                focusManager.clearFocus()
-                if (searchQuery.isNotBlank()) {
-                    onSearch(searchQuery)
-                }
-            }),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0x24FFFFFF),
-                unfocusedContainerColor = Color(0x18FFFFFF),
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-                cursorColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            ),
-            shape = RoundedCornerShape(22.dp),
+        // YouTube Music Top Search Bar
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-        )
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = {
+                    Text(
+                        "Исполнители, треки или альбомы",
+                        color = YtTextSecondary,
+                        fontSize = 15.sp
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = YtTextSecondary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear",
+                                tint = YtTextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = {
+                    focusManager.clearFocus()
+                    if (searchQuery.isNotBlank()) {
+                        onSearch(searchQuery)
+                    }
+                }),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = YtSurface,
+                    unfocusedContainerColor = YtSurface,
+                    focusedTextColor = YtTextPrimary,
+                    unfocusedTextColor = YtTextPrimary,
+                    cursorColor = YtRed,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            )
+        }
 
-        // Subtitle indicator
-        Text(
-            text = "Поиск по трекам YouTube Music",
-            color = TextMuted,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)
-        )
+        // Search Suggestions / Exploration Chips
+        if (searchQuery.isEmpty() && searchResults.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Популярные категории",
+                    color = YtTextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
 
-        // Loading or Results
+                // Chips Flow/Rows
+                val chunkedSuggestions = searchSuggestions.chunked(2)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
+                ) {
+                    items(searchSuggestions) { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(YtSurface)
+                                .clickable {
+                                    searchQuery = tag
+                                    focusManager.clearFocus()
+                                    onSearch(tag)
+                                }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                color = YtTextPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Loading or Results State
         if (isSearching) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 60.dp),
+                    .padding(top = 80.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(
+                    color = YtRed,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(36.dp)
+                )
             }
-        } else if (searchResults.isEmpty()) {
+        } else if (searchResults.isEmpty() && searchQuery.isNotBlank()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -135,20 +189,22 @@ fun SearchScreen(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
-                        tint = TextMuted,
-                        modifier = Modifier.size(54.dp)
+                        tint = YtTextSecondary.copy(alpha = 0.5f),
+                        modifier = Modifier.size(64.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        text = if (searchQuery.isBlank()) "Найдите любую музыку на YouTube Music или SoundCloud" else "Ничего не найдено",
-                        color = TextMuted,
-                        fontSize = 14.sp
+                        text = "Ничего не найдено",
+                        color = YtTextSecondary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(searchResults) { track ->
                     TrackItem(

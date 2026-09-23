@@ -12,11 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -27,6 +27,9 @@ import com.crystall.music.engine.ResolveResult
 import com.crystall.music.ui.components.TrackItem
 import com.crystall.music.ui.theme.*
 
+/**
+ * 1:1 YouTube Music Import Screen
+ */
 @Composable
 fun ImportScreen(
     currentTrack: Track?,
@@ -49,61 +52,66 @@ fun ImportScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(YtBackground)
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
-        // iOS Large Title
+        // YouTube Music Header
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = "Импорт",
-                    color = TextPrimary,
-                    fontSize = 32.sp,
+                    color = YtTextPrimary,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Вставьте ссылку на трек или плейлист YouTube Music",
-                    color = IosTextSecondary,
+                    text = "Вставьте ссылку на плейлист или трек",
+                    color = YtTextSecondary,
                     fontSize = 13.sp
                 )
             }
         }
 
-        // Input Box Card with Glass styling
+        // Input Box
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0x18FFFFFF)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x28FFFFFF))
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = YtSurface)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     TextField(
                         value = inputUrl,
                         onValueChange = {
                             inputUrl = it
                             isSavedToLibrary = false
                         },
-                        placeholder = { Text("https://music.youtube.com/playlist?list=...", color = TextMuted, fontSize = 13.sp) },
+                        placeholder = {
+                            Text(
+                                "https://music.youtube.com/playlist?list=...",
+                                color = YtTextSecondary,
+                                fontSize = 13.sp
+                            )
+                        },
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = SurfaceDark,
-                            unfocusedContainerColor = SurfaceDark,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            cursorColor = Color.White,
+                            focusedContainerColor = Color(0xFF161616),
+                            unfocusedContainerColor = Color(0xFF161616),
+                            focusedTextColor = YtTextPrimary,
+                            unfocusedTextColor = YtTextPrimary,
+                            cursorColor = YtRed,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -113,7 +121,6 @@ fun ImportScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Paste from clipboard button
                         OutlinedButton(
                             onClick = {
                                 val clip = clipboardManager.getText()?.text
@@ -121,16 +128,15 @@ fun ImportScreen(
                                     inputUrl = clip.trim()
                                 }
                             },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = YtTextPrimary)
                         ) {
                             Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Вставить", fontSize = 13.sp)
                         }
 
-                        // Resolve Button
                         Button(
                             onClick = {
                                 if (inputUrl.isNotBlank()) {
@@ -138,18 +144,18 @@ fun ImportScreen(
                                     onResolveUrl(inputUrl)
                                 }
                             },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1.3f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = CrystalPrimary,
-                                contentColor = TextPrimary
+                                containerColor = Color.White,
+                                contentColor = Color.Black
                             ),
                             enabled = !isResolving && inputUrl.isNotBlank()
                         ) {
                             if (isResolving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
-                                    color = TextPrimary,
+                                    color = Color.Black,
                                     strokeWidth = 2.dp
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -157,7 +163,7 @@ fun ImportScreen(
                             } else {
                                 Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Импорт", fontSize = 13.sp)
+                                Text("Импорт", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -173,7 +179,8 @@ fun ImportScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.15f))
+                        colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.15f)),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = resolveResult.message,
@@ -199,16 +206,16 @@ fun ImportScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(SurfaceElevated)
-                                .padding(14.dp),
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(YtSurface)
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(BackgroundDark),
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF141414)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (!playlist.coverUrl.isNullOrBlank()) {
@@ -222,8 +229,8 @@ fun ImportScreen(
                                     Icon(
                                         imageVector = Icons.Default.LibraryMusic,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(34.dp)
+                                        tint = YtTextSecondary,
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                             }
@@ -233,14 +240,14 @@ fun ImportScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = playlist.title,
-                                    color = TextPrimary,
+                                    color = YtTextPrimary,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = "${playlist.author} • ${tracks.size} треков",
-                                    color = TextSecondary,
+                                    color = YtTextSecondary,
                                     fontSize = 13.sp
                                 )
                             }
@@ -258,11 +265,11 @@ fun ImportScreen(
                                     onSavePlaylist(playlist, tracks)
                                     isSavedToLibrary = true
                                 },
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isSavedToLibrary) GreenSuccess.copy(alpha = 0.25f) else SurfaceElevated,
-                                    contentColor = if (isSavedToLibrary) GreenSuccess else TextPrimary
+                                    containerColor = if (isSavedToLibrary) GreenSuccess.copy(alpha = 0.25f) else YtSurface,
+                                    contentColor = if (isSavedToLibrary) GreenSuccess else YtTextPrimary
                                 )
                             ) {
                                 Icon(
@@ -279,7 +286,7 @@ fun ImportScreen(
                                     onSavePlaylist(playlist, tracks)
                                     onDownloadAllTracks(tracks)
                                 },
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1.3f),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.White,
@@ -296,9 +303,9 @@ fun ImportScreen(
 
                         Text(
                             text = "Треки в плейлисте:",
-                            color = TextSecondary,
+                            color = YtTextSecondary,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -327,9 +334,9 @@ fun ImportScreen(
                     ) {
                         Text(
                             text = "Найден трек:",
-                            color = TextSecondary,
+                            color = YtTextSecondary,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
@@ -350,26 +357,25 @@ fun ImportScreen(
             }
 
             null -> {
-                // Info hints
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
                             imageVector = Icons.Default.CloudDownload,
                             contentDescription = null,
-                            tint = TextMuted,
+                            tint = YtTextSecondary.copy(alpha = 0.5f),
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Любой плейлист из YouTube Music можно скачать целиком на телефон и слушать в самолете или без связи.",
-                            color = TextMuted,
+                            text = "Импортируйте любимые плейлисты для прослушивания и загрузки в память устройства.",
+                            color = YtTextSecondary,
                             fontSize = 13.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
