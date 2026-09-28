@@ -73,19 +73,6 @@ fun MiniPlayer(
             .clip(RoundedCornerShape(12.dp))
             .background(YtSurface)
             .border(0.5.dp, Color(0x28FFFFFF), RoundedCornerShape(12.dp))
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragEnd = {
-                        if (dragOffset < -70f) {
-                            onNextClick()
-                        }
-                        dragOffset = 0f
-                    },
-                    onHorizontalDrag = { _, dragAmount ->
-                        dragOffset += dragAmount
-                    }
-                )
-            }
             .clickable { onPlayerClick() }
     ) {
         // YouTube Music Signature Top Red Progress Bar

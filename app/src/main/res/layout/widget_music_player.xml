@@ -62,7 +62,7 @@
             android:layout_width="34dp"
             android:layout_height="34dp"
             android:src="@drawable/ic_widget_prev"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:padding="6dp"
             android:contentDescription="Previous" />
 
@@ -82,7 +82,7 @@
             android:layout_width="34dp"
             android:layout_height="34dp"
             android:src="@drawable/ic_widget_next"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:padding="6dp"
             android:contentDescription="Next" />
     </LinearLayout>

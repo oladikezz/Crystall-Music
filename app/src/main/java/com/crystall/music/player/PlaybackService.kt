@@ -23,11 +23,7 @@ class PlaybackService : MediaSessionService() {
         fun start(context: Context) {
             try {
                 val intent = Intent(context, PlaybackService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    context.startService(intent)
-                }
+                context.startService(intent)
             } catch (_: Exception) {}
         }
     }
@@ -57,6 +53,11 @@ class PlaybackService : MediaSessionService() {
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
         }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        return START_NOT_STICKY
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {

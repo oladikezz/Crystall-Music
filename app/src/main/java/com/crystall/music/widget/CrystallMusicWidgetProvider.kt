@@ -32,106 +32,128 @@ class CrystallMusicWidgetProvider : AppWidgetProvider() {
         const val ACTION_PREV = "com.crystall.music.widget.ACTION_PREV"
 
         private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        @Volatile
+        private var cachedTrackId: String? = null
+        @Volatile
+        private var cachedCoverBitmap: Bitmap? = null
+        private var updateJob: kotlinx.coroutines.Job? = null
 
         fun updateAllWidgets(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = ComponentName(context, CrystallMusicWidgetProvider::class.java)
-            val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
-            if (widgetIds.isEmpty()) return
+            try {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val componentName = ComponentName(context, CrystallMusicWidgetProvider::class.java)
+                val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
+                if (widgetIds.isEmpty()) return
 
-            val playerManager = MusicPlayerManager.getInstance(context)
-            val currentTrack = playerManager.currentTrack.value
-            val isPlaying = playerManager.isPlaying.value
+                val playerManager = MusicPlayerManager.getInstance(context)
+                val currentTrack = playerManager.currentTrack.value
+                val isPlaying = playerManager.isPlaying.value
 
-            widgetScope.launch {
-                var coverBitmap: Bitmap? = null
-                if (currentTrack != null && currentTrack.coverUrl.isNotBlank()) {
-                    try {
-                        val imageLoader = ImageLoader(context)
-                        val request = ImageRequest.Builder(context)
-                            .data(currentTrack.coverUrl)
-                            .size(160, 160)
-                            .allowHardware(false)
-                            .build()
-                        val result = imageLoader.execute(request)
-                        if (result is SuccessResult) {
-                            coverBitmap = (result.drawable as? BitmapDrawable)?.bitmap
-                        }
-                    } catch (_: Exception) {}
-                }
-
-                for (id in widgetIds) {
-                    val views = RemoteViews(context.packageName, R.layout.widget_music_player)
-
-                    // Open App on widget click
-                    val openAppIntent = Intent(context, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    }
-                    val openAppPendingIntent = PendingIntent.getActivity(
-                        context,
-                        0,
-                        openAppIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                    views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
-
-                    // Transport Actions
-                    val prevIntent = Intent(context, CrystallMusicWidgetProvider::class.java).apply {
-                        action = ACTION_PREV
-                    }
-                    val prevPendingIntent = PendingIntent.getBroadcast(
-                        context,
-                        1,
-                        prevIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                    views.setOnClickPendingIntent(R.id.widget_btn_prev, prevPendingIntent)
-
-                    val playPauseIntent = Intent(context, CrystallMusicWidgetProvider::class.java).apply {
-                        action = ACTION_PLAY_PAUSE
-                    }
-                    val playPausePendingIntent = PendingIntent.getBroadcast(
-                        context,
-                        2,
-                        playPauseIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                    views.setOnClickPendingIntent(R.id.widget_btn_play_pause, playPausePendingIntent)
-
-                    val nextIntent = Intent(context, CrystallMusicWidgetProvider::class.java).apply {
-                        action = ACTION_NEXT
-                    }
-                    val nextPendingIntent = PendingIntent.getBroadcast(
-                        context,
-                        3,
-                        nextIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                    views.setOnClickPendingIntent(R.id.widget_btn_next, nextPendingIntent)
-
-                    // Content
+                updateJob?.cancel()
+                updateJob = widgetScope.launch {
+                    var coverBitmap: Bitmap? = null
                     if (currentTrack != null) {
-                        views.setTextViewText(R.id.widget_title, currentTrack.title)
-                        views.setTextViewText(R.id.widget_artist, currentTrack.artist)
+                        if (currentTrack.id == cachedTrackId && cachedCoverBitmap != null) {
+                            coverBitmap = cachedCoverBitmap
+                        } else if (currentTrack.coverUrl.isNotBlank()) {
+                            try {
+                                val imageLoader = ImageLoader(context)
+                                val request = ImageRequest.Builder(context)
+                                    .data(currentTrack.coverUrl)
+                                    .size(120, 120)
+                                    .allowHardware(false)
+                                    .build()
+                                val result = imageLoader.execute(request)
+                                if (result is SuccessResult) {
+                                    val bmp = (result.drawable as? BitmapDrawable)?.bitmap
+                                    if (bmp != null) {
+                                        coverBitmap = bmp
+                                        cachedTrackId = currentTrack.id
+                                        cachedCoverBitmap = bmp
+                                    }
+                                }
+                            } catch (_: Exception) {}
+                        }
                     } else {
-                        views.setTextViewText(R.id.widget_title, "Crystall Music")
-                        views.setTextViewText(R.id.widget_artist, "Включите музыку")
+                        cachedTrackId = null
+                        cachedCoverBitmap = null
                     }
 
-                    // Play/Pause icon
-                    val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
-                    views.setImageViewResource(R.id.widget_btn_play_pause, playPauseIcon)
+                    for (id in widgetIds) {
+                        try {
+                            val views = RemoteViews(context.packageName, R.layout.widget_music_player)
 
-                    // Artwork
-                    if (coverBitmap != null) {
-                        views.setImageViewBitmap(R.id.widget_cover, coverBitmap)
-                    } else {
-                        views.setImageViewResource(R.id.widget_cover, R.drawable.ic_crystall_logo)
+                            // Open App on widget click
+                            val openAppIntent = Intent(context, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            }
+                            val openAppPendingIntent = PendingIntent.getActivity(
+                                context,
+                                0,
+                                openAppIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
+
+                            // Transport Actions
+                            val prevIntent = Intent(context, CrystallMusicWidgetProvider::class.java).apply {
+                                action = ACTION_PREV
+                            }
+                            val prevPendingIntent = PendingIntent.getBroadcast(
+                                context,
+                                1,
+                                prevIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            views.setOnClickPendingIntent(R.id.widget_btn_prev, prevPendingIntent)
+
+                            val playPauseIntent = Intent(context, CrystallMusicWidgetProvider::class.java).apply {
+                                action = ACTION_PLAY_PAUSE
+                            }
+                            val playPausePendingIntent = PendingIntent.getBroadcast(
+                                context,
+                                2,
+                                playPauseIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            views.setOnClickPendingIntent(R.id.widget_btn_play_pause, playPausePendingIntent)
+
+                            val nextIntent = Intent(context, CrystallMusicWidgetProvider::class.java).apply {
+                                action = ACTION_NEXT
+                            }
+                            val nextPendingIntent = PendingIntent.getBroadcast(
+                                context,
+                                3,
+                                nextIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            views.setOnClickPendingIntent(R.id.widget_btn_next, nextPendingIntent)
+
+                            // Content
+                            if (currentTrack != null) {
+                                views.setTextViewText(R.id.widget_title, currentTrack.title)
+                                views.setTextViewText(R.id.widget_artist, currentTrack.artist)
+                            } else {
+                                views.setTextViewText(R.id.widget_title, "Crystall Music")
+                                views.setTextViewText(R.id.widget_artist, "Включите музыку")
+                            }
+
+                            // Play/Pause icon
+                            val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
+                            views.setImageViewResource(R.id.widget_btn_play_pause, playPauseIcon)
+
+                            // Artwork
+                            if (coverBitmap != null) {
+                                views.setImageViewBitmap(R.id.widget_cover, coverBitmap)
+                            } else {
+                                views.setImageViewResource(R.id.widget_cover, R.drawable.ic_crystall_logo)
+                            }
+
+                            appWidgetManager.updateAppWidget(id, views)
+                        } catch (_: Exception) {}
                     }
-
-                    appWidgetManager.updateAppWidget(id, views)
                 }
-            }
+            } catch (_: Exception) {}
         }
     }
 

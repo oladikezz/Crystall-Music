@@ -641,8 +641,9 @@ object YouTubeEngine {
     private fun findJsonObjects(element: JsonElement, keyName: String, results: MutableList<JsonObject>) {
         if (element.isJsonObject) {
             val obj = element.asJsonObject
-            if (obj.has(keyName)) {
-                results.add(obj.getAsJsonObject(keyName))
+            val child = obj.get(keyName)
+            if (child != null && child.isJsonObject) {
+                results.add(child.asJsonObject)
             }
             for (entry in obj.entrySet()) {
                 findJsonObjects(entry.value, keyName, results)

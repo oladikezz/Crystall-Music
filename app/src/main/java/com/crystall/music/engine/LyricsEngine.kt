@@ -83,13 +83,16 @@ object LyricsEngine {
             val sResp = httpClient.newCall(sReq).execute()
             if (sResp.isSuccessful) {
                 val sBody = sResp.body?.string() ?: return null
-                val array = JsonParser.parseString(sBody).asJsonArray
-                if (array.size() > 0) {
-                    val first = array.get(0).asJsonObject
-                    val synced = first.get("syncedLyrics")?.let { if (it.isJsonNull) null else it.asString }
-                    val plain = first.get("plainLyrics")?.let { if (it.isJsonNull) null else it.asString }
-                    val lines = if (!synced.isNullOrBlank()) parseLrc(synced) else emptyList()
-                    return LyricsResult(syncedLyrics = lines, plainLyrics = plain)
+                val parsed = JsonParser.parseString(sBody)
+                if (parsed.isJsonArray) {
+                    val array = parsed.asJsonArray
+                    if (array.size() > 0) {
+                        val first = array.get(0).asJsonObject
+                        val synced = first.get("syncedLyrics")?.let { if (it.isJsonNull) null else it.asString }
+                        val plain = first.get("plainLyrics")?.let { if (it.isJsonNull) null else it.asString }
+                        val lines = if (!synced.isNullOrBlank()) parseLrc(synced) else emptyList()
+                        return LyricsResult(syncedLyrics = lines, plainLyrics = plain)
+                    }
                 }
             }
         } catch (_: Exception) {}

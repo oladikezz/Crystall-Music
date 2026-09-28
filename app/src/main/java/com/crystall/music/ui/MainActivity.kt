@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -127,6 +128,23 @@ fun MainAppScreen(viewModel: MainViewModel) {
     var showPlayerOptions by remember { mutableStateOf(false) }
 
     val downloadStates by viewModel.downloadManager.downloadStates.collectAsState()
+
+    // Android System Back Button Handler
+    BackHandler(enabled = isFullPlayerVisible) {
+        viewModel.hideFullPlayer()
+    }
+    BackHandler(enabled = !isFullPlayerVisible && showPlayerOptions) {
+        showPlayerOptions = false
+    }
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && selectedPlaylist != null) {
+        viewModel.closePlaylistDetail()
+    }
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && selectedPlaylist == null && showTastePicker) {
+        viewModel.dismissTastePicker(skipped = true)
+    }
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && selectedPlaylist == null && !showTastePicker && currentTab != 0) {
+        viewModel.setTab(0)
+    }
 
     Box(
         modifier = Modifier

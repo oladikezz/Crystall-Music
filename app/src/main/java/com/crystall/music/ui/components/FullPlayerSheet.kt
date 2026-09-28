@@ -319,14 +319,28 @@ fun FullPlayerSheet(
 
             // 4. Scrubber / Progress Bar (YouTube Music Red Indicator)
             val totalDuration: Long = if (durationMs > 0L) durationMs else track.durationMs
-            val progress: Float = if (totalDuration > 0L) (positionMs.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f) else 0f
+            var isDraggingSlider by remember { mutableStateOf(false) }
+            var dragPositionFraction by remember { mutableFloatStateOf(0f) }
+
+            val currentFraction = if (isDraggingSlider) {
+                dragPositionFraction
+            } else if (totalDuration > 0L) {
+                (positionMs.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
 
             Slider(
-                value = progress,
+                value = currentFraction,
                 onValueChange = { newFrac ->
+                    isDraggingSlider = true
+                    dragPositionFraction = newFrac
+                },
+                onValueChangeFinished = {
                     if (totalDuration > 0L) {
-                        onSeekTo((newFrac * totalDuration).toLong())
+                        onSeekTo((dragPositionFraction * totalDuration).toLong())
                     }
+                    isDraggingSlider = false
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -339,6 +353,12 @@ fun FullPlayerSheet(
             )
 
             // Time Row
+            val displayedPositionMs = if (isDraggingSlider && totalDuration > 0L) {
+                (dragPositionFraction * totalDuration).toLong()
+            } else {
+                positionMs
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -346,7 +366,7 @@ fun FullPlayerSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = formatMs(positionMs),
+                    text = formatMs(displayedPositionMs),
                     color = YtTextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium

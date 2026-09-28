@@ -135,7 +135,6 @@ fun SplashScreen(
             modifier = Modifier
                 .size(340.dp)
                 .scale(logoScale * 1.15f)
-                .blur(90.dp)
                 .background(
                     Brush.radialGradient(
                         listOf(

@@ -63,10 +63,10 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     private val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            1500,   // minBufferMs (1.5s)
-            30000,  // maxBufferMs (30s)
-            1000,   // bufferForPlaybackMs (1s)
-            1500    // bufferForPlaybackAfterRebufferMs (1.5s)
+            15000,  // minBufferMs (15s)
+            50000,  // maxBufferMs (50s)
+            2000,   // bufferForPlaybackMs (2s)
+            3000    // bufferForPlaybackAfterRebufferMs (3s)
         )
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
@@ -129,6 +129,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val _dislikedTrackIds = MutableStateFlow(dbHelper.getDislikedTrackIds())
     val dislikedTrackIds: StateFlow<Set<String>> = _dislikedTrackIds.asStateFlow()
 
+    private var consecutiveErrorCount = 0
     private var progressTrackerJob: Job? = null
     private var sleepTimerJob: Job? = null
     private var playJob: Job? = null
@@ -157,6 +158,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
                 if (isPlaying) {
+                    consecutiveErrorCount = 0
                     startProgressTracker()
                     startPlaybackService()
                 } else {
@@ -168,6 +170,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isBuffering.value = (playbackState == Player.STATE_BUFFERING)
                 if (playbackState == Player.STATE_READY) {
+                    consecutiveErrorCount = 0
                     _duration.value = player.duration.coerceAtLeast(0L)
                 } else if (playbackState == Player.STATE_ENDED) {
                     onTrackEnded()
@@ -178,10 +181,14 @@ class MusicPlayerManager private constructor(private val context: Context) {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 error.printStackTrace()
                 _isBuffering.value = false
-                // Auto-advance on playback error so music never halts!
-                scope.launch(Dispatchers.Main) {
-                    delay(400)
-                    skipNext()
+                consecutiveErrorCount++
+                if (consecutiveErrorCount < 3) {
+                    scope.launch(Dispatchers.Main) {
+                        delay(600)
+                        skipNext()
+                    }
+                } else {
+                    _isPlaying.value = false
                 }
             }
         })
@@ -240,14 +247,14 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, _isEconomyMode.value)
                 } else null
 
-                // Load artwork bytes for lock screen display
+                // Load lightweight artwork bytes for lock screen display (under 12KB)
                 var artworkBytes: ByteArray? = null
                 if (!artworkUrl.isNullOrBlank()) {
                     try {
                         val imageLoader = coil.ImageLoader(context)
                         val request = coil.request.ImageRequest.Builder(context)
                             .data(artworkUrl)
-                            .size(500, 500)
+                            .size(140, 140)
                             .allowHardware(false)
                             .build()
                         val result = imageLoader.execute(request)
@@ -255,7 +262,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                             val bitmap = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
                             if (bitmap != null) {
                                 val stream = java.io.ByteArrayOutputStream()
-                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, stream)
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, stream)
                                 artworkBytes = stream.toByteArray()
                             }
                         }
@@ -273,18 +280,10 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     }
                     .build()
 
-                val mediaItemBuilder = MediaItem.Builder()
+                val mediaItem = MediaItem.Builder()
                     .setUri(playableUri)
                     .setMediaMetadata(metadata)
-
-                if (playableUri.startsWith("http")) {
-                    if (playableUri.contains("itag=251") || playableUri.contains("itag=249") || playableUri.contains("itag=250") || playableUri.contains("webm")) {
-                        mediaItemBuilder.setMimeType(MimeTypes.AUDIO_WEBM)
-                    } else if (playableUri.contains("itag=18") || playableUri.contains("itag=140") || playableUri.contains("itag=139") || playableUri.contains("mime=audio%2Fmp4") || playableUri.contains("mime=video%2Fmp4")) {
-                        mediaItemBuilder.setMimeType(MimeTypes.AUDIO_MP4)
-                    }
-                }
-                val mediaItem = mediaItemBuilder.build()
+                    .build()
 
                 withContext(Dispatchers.Main) {
                     if (_currentTrack.value?.id != track.id) return@withContext
