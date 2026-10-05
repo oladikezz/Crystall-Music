@@ -1,6 +1,7 @@
 package com.crystall.music.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,10 +27,11 @@ import com.crystall.music.data.model.Playlist
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.components.TrackItem
+import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
 /**
- * 1:1 YouTube Music Library Screen
+ * YouTube Music & Spotify style Library Screen with Liquid Glass aesthetics
  */
 @Composable
 fun LibraryScreen(
@@ -47,6 +49,7 @@ fun LibraryScreen(
     onPlaylistClick: (Playlist) -> Unit,
     onDeletePlaylistClick: (Playlist) -> Unit
 ) {
+    val strings = LocalStrings.current
     var selectedTab by remember { mutableStateOf(0) } // 0 = Downloads, 1 = Playlists, 2 = Favorites
 
     Column(
@@ -56,7 +59,7 @@ fun LibraryScreen(
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
-        // YouTube Music Library Header
+        // Library Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -64,7 +67,7 @@ fun LibraryScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Фонотека",
+                text = strings.libTitle,
                 color = YtTextPrimary,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
@@ -72,11 +75,11 @@ fun LibraryScreen(
             )
         }
 
-        // YouTube Music Category Filter Chips
+        // Category Filter Chips
         val tabs = listOf(
-            "Скачанные (${downloadedTracks.size})",
-            "Плейлисты (${playlists.size})",
-            "Понравившиеся (${favoriteTracks.size})"
+            "${strings.libDownloads} (${downloadedTracks.size})",
+            "${strings.libPlaylists} (${playlists.size})",
+            "${strings.libFavorites} (${favoriteTracks.size})"
         )
 
         LazyRow(
@@ -88,8 +91,13 @@ fun LibraryScreen(
                 val isSelected = selectedTab == index
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) Color.White else YtSurface)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) Color.White else Color(0x18FFFFFF))
+                        .border(
+                            1.dp,
+                            if (isSelected) Color.Transparent else Color(0x24FFFFFF),
+                            RoundedCornerShape(12.dp)
+                        )
                         .clickable { selectedTab = index }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
@@ -98,7 +106,7 @@ fun LibraryScreen(
                         text = tabs[index],
                         color = if (isSelected) Color.Black else YtTextPrimary,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 }
             }
@@ -119,7 +127,7 @@ fun LibraryScreen(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Недавние действия",
+                text = strings.libRecentActivity,
                 color = YtTextSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
@@ -146,14 +154,14 @@ fun LibraryScreen(
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Нет скачанных треков",
+                                text = strings.libNoDownloadsTitle,
                                 color = YtTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Скачивайте треки и слушайте их без подключения к сети",
+                                text = strings.libNoDownloadsSub,
                                 color = YtTextSecondary,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
@@ -171,7 +179,7 @@ fun LibraryScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Доступно офлайн: ${downloadedTracks.size}",
+                                    text = "${strings.libAvailableOffline}: ${downloadedTracks.size}",
                                     color = GreenSuccess,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium
@@ -181,7 +189,7 @@ fun LibraryScreen(
                                     onClick = { onTrackClick(downloadedTracks.first(), downloadedTracks) },
                                     shape = RoundedCornerShape(18.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = YtSurface,
+                                        containerColor = Color(0x22FFFFFF),
                                         contentColor = YtTextPrimary
                                     ),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -193,7 +201,7 @@ fun LibraryScreen(
                                         tint = Color.White
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Перемешать всё", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                    Text(strings.libShuffleAll, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 }
                             }
                         }
@@ -233,14 +241,14 @@ fun LibraryScreen(
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Плейлистов пока нет",
+                                text = strings.libNoPlaylistsTitle,
                                 color = YtTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Импортируйте плейлисты из YouTube Music во вкладке «Импорт»",
+                                text = strings.libNoPlaylistsSub,
                                 color = YtTextSecondary,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
@@ -260,7 +268,7 @@ fun LibraryScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(56.dp)
-                                        .clip(RoundedCornerShape(6.dp))
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(YtSurface),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -292,7 +300,7 @@ fun LibraryScreen(
                                     )
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(
-                                        text = "Плейлист • ${playlist.trackCount} треков",
+                                        text = String.format(strings.libPlaylistTracksCount, playlist.trackCount),
                                         color = YtTextSecondary,
                                         fontSize = 12.sp
                                     )
@@ -330,14 +338,14 @@ fun LibraryScreen(
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Понравившихся треков пока нет",
+                                text = strings.libNoFavoritesTitle,
                                 color = YtTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Нажмите «Нравится» в плеере, чтобы сохранить треки здесь",
+                                text = strings.libNoFavoritesSub,
                                 color = YtTextSecondary,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center

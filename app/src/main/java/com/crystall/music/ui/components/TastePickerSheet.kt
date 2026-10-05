@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.TextPrimary
 import com.crystall.music.ui.theme.TextSecondary
 
@@ -68,6 +69,7 @@ fun TastePickerSheet(
     onSkip: () -> Unit,
     onSave: (List<String>) -> Unit
 ) {
+    val strings = LocalStrings.current
     val selectedArtists = remember { mutableStateListOf<String>().apply { addAll(initialSelectedArtists) } }
     var customArtistInput by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
@@ -163,7 +165,7 @@ fun TastePickerSheet(
                             )
                         }
                         Text(
-                            text = "Музыкальный вкус",
+                            text = strings.tasteTitle,
                             color = TextPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
@@ -186,7 +188,7 @@ fun TastePickerSheet(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Выберите любимых артистов для персонализации вашей ленты",
+                    text = strings.tasteSubtitle,
                     color = TextSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.fillMaxWidth()
@@ -348,7 +350,7 @@ fun TastePickerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Пропустить",
+                            text = strings.tasteSkipBtn,
                             color = Color(0xB3FFFFFF),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -369,7 +371,7 @@ fun TastePickerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (selectedArtists.isEmpty()) "Применить" else "Готово (${selectedArtists.size})",
+                            text = if (selectedArtists.isEmpty()) strings.tasteSaveBtn else "${strings.tasteSaveBtn} (${selectedArtists.size})",
                             color = Color(0xFF101014),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold

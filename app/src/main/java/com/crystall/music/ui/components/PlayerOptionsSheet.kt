@@ -24,11 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.crystall.music.ui.i18n.LocalAppLanguage
+import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.GreenSuccess
 import com.crystall.music.ui.theme.TextPrimary
 import com.crystall.music.ui.theme.TextSecondary
 import com.crystall.music.ui.theme.YtRed
-import com.crystall.music.ui.theme.YtSurface
 import com.crystall.music.ui.theme.YtSurfaceElevated
 
 @Composable
@@ -44,8 +45,12 @@ fun PlayerOptionsSheet(
     onToggleEndlessRadio: () -> Unit,
     onSetPlaybackSpeed: (Float) -> Unit,
     onToggleEconomyMode: () -> Unit = {},
+    onOpenLanguagePicker: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
+    val strings = LocalStrings.current
+    val currentLang = LocalAppLanguage.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -95,7 +100,7 @@ fun PlayerOptionsSheet(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Настройки воспроизведения",
+                        text = strings.optionsTitle,
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -117,7 +122,61 @@ fun PlayerOptionsSheet(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // ---------------------------------------------------------
-                // SECTION 0: Экономия интернет-трафика (Эконом / Норм)
+                // SECTION 0: Language Setting Pill Button
+                // ---------------------------------------------------------
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0x18FFFFFF))
+                        .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(16.dp))
+                        .clickable { onOpenLanguagePicker() }
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = strings.optionsLanguageTitle,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${currentLang.flag} ${currentLang.nativeName} (${currentLang.displayName})",
+                                    color = YtRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // ---------------------------------------------------------
+                // SECTION 1: Экономия интернет-трафика (Эконом / Норм)
                 // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
@@ -138,7 +197,7 @@ fun PlayerOptionsSheet(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Расход интернет-трафика",
+                            text = strings.optionsDataSaverTitle,
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
@@ -175,7 +234,7 @@ fun PlayerOptionsSheet(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = "⚡ Эконом",
+                                        text = strings.optionsEcoName,
                                         color = if (isEconomyMode) GreenSuccess else Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
@@ -191,13 +250,13 @@ fun PlayerOptionsSheet(
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "~1.2 МБ / трек",
+                                    text = strings.optionsEcoSize,
                                     color = if (isEconomyMode) Color.White else Color(0x99FFFFFF),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = "Минимум интернета, лёгкие обложки",
+                                    text = strings.optionsEcoSub,
                                     color = Color(0x88FFFFFF),
                                     fontSize = 10.sp,
                                     lineHeight = 13.sp
@@ -229,7 +288,7 @@ fun PlayerOptionsSheet(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = "💎 Норм",
+                                        text = strings.optionsNormName,
                                         color = Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
@@ -245,13 +304,13 @@ fun PlayerOptionsSheet(
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "~3.5 МБ / трек",
+                                    text = strings.optionsNormSize,
                                     color = if (!isEconomyMode) Color.White else Color(0x99FFFFFF),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = "Высокое качество, Ultra HD обложки",
+                                    text = strings.optionsNormSub,
                                     color = Color(0x88FFFFFF),
                                     fontSize = 10.sp,
                                     lineHeight = 13.sp
@@ -261,10 +320,10 @@ fun PlayerOptionsSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // ---------------------------------------------------------
-                // SECTION 1: Таймер сна (Sleep Timer)
+                // SECTION 2: Таймер сна (Sleep Timer)
                 // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
@@ -290,7 +349,7 @@ fun PlayerOptionsSheet(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "Таймер сна",
+                                text = strings.optionsSleepTimerTitle,
                                 color = TextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -298,37 +357,31 @@ fun PlayerOptionsSheet(
                         }
 
                         if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) {
-                            val statusText = if (isSleepTimerEndOfTrack) {
-                                "До конца трека"
+                            val activeText = if (isSleepTimerEndOfTrack) {
+                                strings.optionsSleepTimerEndTrack
                             } else {
-                                val totalSec = (sleepTimerRemainingMs ?: 0L) / 1000
-                                val min = totalSec / 60
-                                val sec = totalSec % 60
-                                String.format("%d:%02d", min, sec)
+                                val minutesLeft = (sleepTimerRemainingMs ?: 0L) / 60000
+                                "⏱ ${minutesLeft}м"
                             }
-
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = statusText,
+                                    text = activeText,
                                     color = GreenSuccess,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0x28FFFFFF))
-                                        .clickable { onCancelSleepTimer() }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                IconButton(
+                                    onClick = onCancelSleepTimer,
+                                    modifier = Modifier.size(24.dp)
                                 ) {
-                                    Text(
-                                        text = "Сброс",
-                                        color = Color.White,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = strings.optionsSleepTimerReset,
+                                        tint = Color.White.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -337,18 +390,18 @@ fun PlayerOptionsSheet(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Timer Chips
+                    val timerPresets = listOf(
+                        10 to "10м",
+                        15 to "15м",
+                        30 to "30м",
+                        45 to "45м",
+                        60 to "60м"
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        val timerPresets = listOf(
-                            Pair(15, "15 мин"),
-                            Pair(30, "30 мин"),
-                            Pair(45, "45 мин"),
-                            Pair(60, "60 мин")
-                        )
-
                         for ((minutes, label) in timerPresets) {
                             Box(
                                 modifier = Modifier
@@ -385,7 +438,7 @@ fun PlayerOptionsSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Остановить в конце текущего трека",
+                            text = strings.optionsSleepTimerEndTrack,
                             color = if (isSleepTimerEndOfTrack) Color.White else Color(0xCCFFFFFF),
                             fontSize = 12.sp,
                             fontWeight = if (isSleepTimerEndOfTrack) FontWeight.Bold else FontWeight.Normal
@@ -393,10 +446,10 @@ fun PlayerOptionsSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // ---------------------------------------------------------
-                // SECTION 2: Скорость воспроизведения (0.8x - 1.5x)
+                // SECTION 3: Скорость воспроизведения (0.8x - 1.5x)
                 // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
@@ -422,7 +475,7 @@ fun PlayerOptionsSheet(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "Скорость воспроизведения",
+                                text = strings.optionsSpeedTitle,
                                 color = TextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold

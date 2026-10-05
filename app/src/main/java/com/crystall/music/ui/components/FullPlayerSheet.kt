@@ -38,6 +38,7 @@ import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.engine.LyricsResult
 import com.crystall.music.engine.YouTubeEngine
+import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
 enum class PlayerBottomTab {
@@ -81,6 +82,7 @@ fun FullPlayerSheet(
     onQueueTrackClick: (Track) -> Unit,
     onStopPlayback: () -> Unit = {}
 ) {
+    val strings = LocalStrings.current
     var selectedBottomTab by remember { mutableStateOf<PlayerBottomTab?>(null) }
     var isVideoMode by remember { mutableStateOf(false) }
 
@@ -138,7 +140,7 @@ fun FullPlayerSheet(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Песня",
+                                text = strings.playerSongMode,
                                 color = if (!isVideoMode) Color.White else YtTextSecondary,
                                 fontSize = 12.sp,
                                 fontWeight = if (!isVideoMode) FontWeight.Bold else FontWeight.Normal
@@ -155,7 +157,7 @@ fun FullPlayerSheet(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Видео",
+                                text = strings.playerVideoMode,
                                 color = if (isVideoMode) Color.White else YtTextSecondary,
                                 fontSize = 12.sp,
                                 fontWeight = if (isVideoMode) FontWeight.Bold else FontWeight.Normal
@@ -244,7 +246,7 @@ fun FullPlayerSheet(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Режим видеоклипа",
+                                    text = strings.videoModeOverlay,
                                     color = Color.White,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium
@@ -505,7 +507,7 @@ fun FullPlayerSheet(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Скачано",
+                            text = strings.playerDownloaded,
                             color = GreenSuccess,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
@@ -518,7 +520,7 @@ fun FullPlayerSheet(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Скачать",
+                            text = strings.playerDownload,
                             color = YtTextSecondary,
                             fontSize = 12.sp
                         )
@@ -535,7 +537,7 @@ fun FullPlayerSheet(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = if (isEconomyMode) "⚡ Эконом" else "💎 Норм",
+                        text = if (isEconomyMode) strings.dataSaverEco else strings.dataSaverNorm,
                         color = if (isEconomyMode) GreenSuccess else Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
@@ -584,7 +586,7 @@ fun FullPlayerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "СЛЕДУЮЩИЕ",
+                            text = strings.playerTabUpNext,
                             color = YtTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -608,7 +610,7 @@ fun FullPlayerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "ТЕКСТ",
+                            text = strings.playerTabLyrics,
                             color = YtTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -632,7 +634,7 @@ fun FullPlayerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "ПОХОЖИЕ",
+                            text = strings.playerTabRelated,
                             color = YtTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -678,9 +680,9 @@ fun FullPlayerSheet(
                         for (tab in PlayerBottomTab.values()) {
                             val isTabSelected = selectedBottomTab == tab
                             val label = when (tab) {
-                                PlayerBottomTab.UP_NEXT -> "СЛЕДУЮЩИЕ"
-                                PlayerBottomTab.LYRICS -> "ТЕКСТ"
-                                PlayerBottomTab.RELATED -> "ПОХОЖИЕ"
+                                PlayerBottomTab.UP_NEXT -> strings.playerTabUpNext
+                                PlayerBottomTab.LYRICS -> strings.playerTabLyrics
+                                PlayerBottomTab.RELATED -> strings.playerTabRelated
                             }
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -720,13 +722,13 @@ fun FullPlayerSheet(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Автовоспроизведение",
+                                        text = strings.autoplayTitle,
                                         color = YtTextPrimary,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = "Похожие треки включатся автоматически",
+                                        text = strings.autoplaySubtitle,
                                         color = YtTextSecondary,
                                         fontSize = 12.sp
                                     )
@@ -872,7 +874,7 @@ fun FullPlayerSheet(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "Текст этой песни пока недоступен",
+                                        text = strings.lyricsUnavailable,
                                         color = YtTextSecondary,
                                         fontSize = 14.sp
                                     )
@@ -888,7 +890,7 @@ fun FullPlayerSheet(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "Поиск похожих треков...",
+                                        text = strings.relatedEmpty,
                                         color = YtTextSecondary,
                                         fontSize = 14.sp
                                     )
@@ -901,7 +903,7 @@ fun FullPlayerSheet(
                                 ) {
                                     item {
                                         Text(
-                                            text = "Другие треки исполнителя и похожее",
+                                            text = strings.relatedHeader,
                                             color = YtTextSecondary,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium,

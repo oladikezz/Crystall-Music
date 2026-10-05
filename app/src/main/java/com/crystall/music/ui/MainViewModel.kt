@@ -15,6 +15,7 @@ import com.crystall.music.engine.SoundCloudEngine
 import com.crystall.music.engine.UniversalMusicResolver
 import com.crystall.music.engine.YouTubeEngine
 import com.crystall.music.player.MusicPlayerManager
+import com.crystall.music.ui.i18n.AppLanguage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,6 +89,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedMood = MutableStateFlow("Все")
     val selectedMood: StateFlow<String> = _selectedMood.asStateFlow()
 
+    private val _currentLanguage = MutableStateFlow(AppLanguage.fromCode(dbHelper.getAppLanguage()))
+    val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
+
     private val _relatedTracks = MutableStateFlow<List<Track>>(emptyList())
     val relatedTracks: StateFlow<List<Track>> = _relatedTracks.asStateFlow()
 
@@ -104,6 +108,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         observeCurrentTrackForLyrics()
     }
 
+    fun setLanguage(language: AppLanguage) {
+        _currentLanguage.value = language
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.setAppLanguage(language.code)
+        }
+    }
+
+    fun playMyWave() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val favs = _favoriteArtists.value
+            val tracks = if (favs.isNotEmpty()) {
+                YouTubeEngine.getPersonalizedRecommendations(favs)
+            } else {
+                YouTubeEngine.getTrendingMusic()
+            }
+            if (tracks.isNotEmpty()) {
+                playerManager.playTrack(tracks.first(), tracks)
+                playerManager.setEndlessRadio(true)
+                showFullPlayer()
+            }
+        }
+    }
+
     fun toggleEconomyMode() = playerManager.toggleEconomyMode()
     fun toggleDislike(track: Track) = playerManager.toggleDislike(track.id)
 
@@ -111,7 +138,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _selectedMood.value = mood
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingTrending.value = true
-            val tracks = if (mood == "Все") {
+            val isAll = mood == "Все" || mood.equals("all", ignoreCase = true)
+            val tracks = if (isAll) {
                 val favs = _favoriteArtists.value
                 if (favs.isNotEmpty()) YouTubeEngine.getPersonalizedRecommendations(favs)
                 else YouTubeEngine.getTrendingMusic()

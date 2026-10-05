@@ -431,4 +431,12 @@ class MusicDatabaseHelper private constructor(context: Context) :
         setSetting("disliked_tracks", current.joinToString(","))
         return isDisliked
     }
+
+    fun getAppLanguage(): String {
+        return getSetting("app_language", "ru")
+    }
+
+    fun setAppLanguage(code: String) {
+        setSetting("app_language", code)
+    }
 }

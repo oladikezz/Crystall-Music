@@ -1,6 +1,7 @@
 package com.crystall.music.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,10 +27,11 @@ import androidx.compose.ui.unit.sp
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.components.TrackItem
+import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
 /**
- * 1:1 YouTube Music Search Screen
+ * YouTube Music & Spotify style Search Screen with Liquid Glass aesthetics
  */
 @Composable
 fun SearchScreen(
@@ -44,12 +46,13 @@ fun SearchScreen(
     onDownloadClick: (Track) -> Unit,
     onFavoriteClick: (Track) -> Unit
 ) {
+    val strings = LocalStrings.current
     var searchQuery by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
     val searchSuggestions = listOf(
         "Хиты", "Новинки", "Хип-хоп", "Поп-музыка", "Рок", "Электроника",
-        "Для отдыха", "В дорогу", "Фокус", "Тренировка"
+        "Chill", "Road Trip", "Focus", "Workout"
     )
 
     Column(
@@ -59,7 +62,7 @@ fun SearchScreen(
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
-        // YouTube Music Top Search Bar
+        // Top Liquid Glass Search Bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -70,7 +73,7 @@ fun SearchScreen(
                 onValueChange = { searchQuery = it },
                 placeholder = {
                     Text(
-                        "Исполнители, треки или альбомы",
+                        strings.searchPlaceholder,
                         color = YtTextSecondary,
                         fontSize = 15.sp
                     )
@@ -108,7 +111,7 @@ fun SearchScreen(
                     unfocusedContainerColor = YtSurface,
                     focusedTextColor = YtTextPrimary,
                     unfocusedTextColor = YtTextPrimary,
-                    cursorColor = YtRed,
+                    cursorColor = Color.White,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
@@ -116,6 +119,7 @@ fun SearchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .border(1.dp, Color(0x28FFFFFF), RoundedCornerShape(24.dp))
             )
         }
 
@@ -127,7 +131,7 @@ fun SearchScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Популярные категории",
+                    text = strings.searchPopularCategories,
                     color = YtTextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -135,7 +139,6 @@ fun SearchScreen(
                 )
 
                 // Chips Flow/Rows
-                val chunkedSuggestions = searchSuggestions.chunked(2)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(vertical = 4.dp)
@@ -143,8 +146,9 @@ fun SearchScreen(
                     items(searchSuggestions) { tag ->
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(YtSurface)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0x18FFFFFF))
+                                .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(12.dp))
                                 .clickable {
                                     searchQuery = tag
                                     focusManager.clearFocus()
@@ -173,7 +177,7 @@ fun SearchScreen(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = YtRed,
+                    color = Color.White,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(36.dp)
                 )
@@ -194,7 +198,7 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        text = "Ничего не найдено",
+                        text = strings.searchNothingFound,
                         color = YtTextSecondary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium

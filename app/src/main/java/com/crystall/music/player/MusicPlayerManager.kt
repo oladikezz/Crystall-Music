@@ -490,6 +490,10 @@ class MusicPlayerManager private constructor(private val context: Context) {
         _isEndlessRadioEnabled.value = !_isEndlessRadioEnabled.value
     }
 
+    fun setEndlessRadio(enabled: Boolean) {
+        _isEndlessRadioEnabled.value = enabled
+    }
+
     fun setPlaybackSpeed(speed: Float) {
         _playbackSpeed.value = speed
         player.playbackParameters = PlaybackParameters(speed)

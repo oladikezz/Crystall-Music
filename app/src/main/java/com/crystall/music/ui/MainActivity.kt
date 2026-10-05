@@ -36,9 +36,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.crystall.music.ui.components.FullPlayerSheet
+import com.crystall.music.ui.components.LanguagePickerSheet
 import com.crystall.music.ui.components.MiniPlayer
 import com.crystall.music.ui.components.PlayerOptionsSheet
 import com.crystall.music.ui.components.TastePickerSheet
+import com.crystall.music.ui.i18n.LocalAppLanguage
+import com.crystall.music.ui.i18n.LocalStrings
+import com.crystall.music.ui.i18n.getStringsForLanguage
 import com.crystall.music.ui.screens.*
 import com.crystall.music.ui.theme.*
 
@@ -63,8 +67,16 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
 
         setContent {
-            CrystallMusicTheme {
-                MainAppScreen(viewModel = viewModel)
+            val currentLanguage by viewModel.currentLanguage.collectAsState()
+            val strings = remember(currentLanguage) { getStringsForLanguage(currentLanguage) }
+
+            CompositionLocalProvider(
+                LocalStrings provides strings,
+                LocalAppLanguage provides currentLanguage
+            ) {
+                CrystallMusicTheme {
+                    MainAppScreen(viewModel = viewModel)
+                }
             }
         }
     }
@@ -126,6 +138,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
 
     var isSplashVisible by remember { mutableStateOf(true) }
     var showPlayerOptions by remember { mutableStateOf(false) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
 
     val downloadStates by viewModel.downloadManager.downloadStates.collectAsState()
 
@@ -136,13 +149,16 @@ fun MainAppScreen(viewModel: MainViewModel) {
     BackHandler(enabled = !isFullPlayerVisible && showPlayerOptions) {
         showPlayerOptions = false
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && selectedPlaylist != null) {
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && showLanguagePicker) {
+        showLanguagePicker = false
+    }
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && !showLanguagePicker && selectedPlaylist != null) {
         viewModel.closePlaylistDetail()
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && selectedPlaylist == null && showTastePicker) {
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && !showLanguagePicker && selectedPlaylist == null && showTastePicker) {
         viewModel.dismissTastePicker(skipped = true)
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && selectedPlaylist == null && !showTastePicker && currentTab != 0) {
+    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && !showLanguagePicker && selectedPlaylist == null && !showTastePicker && currentTab != 0) {
         viewModel.setTab(0)
     }
 
@@ -183,7 +199,9 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         onFavoriteClick = { track -> viewModel.toggleFavorite(track) },
                         onNavigateToSearch = { viewModel.setTab(1) },
                         onNavigateToImport = { viewModel.setTab(2) },
-                        onOpenTastePicker = { viewModel.openTastePicker() }
+                        onOpenTastePicker = { viewModel.openTastePicker() },
+                        onOpenLanguagePicker = { showLanguagePicker = true },
+                        onPlayMyWave = { viewModel.playMyWave() }
                     )
                     1 -> SearchScreen(
                         currentTrack = currentTrack,
@@ -299,11 +317,12 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
+                        val strings = LocalStrings.current
                         val items = listOf(
-                            Triple(0, "Главная", if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home),
-                            Triple(1, "Поиск", Icons.Default.Search),
-                            Triple(2, "Импорт", if (currentTab == 2) Icons.Filled.AddCircle else Icons.Outlined.AddCircleOutline),
-                            Triple(3, "Фонотека", if (currentTab == 3) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic)
+                            Triple(0, strings.navHome, if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home),
+                            Triple(1, strings.navSearch, Icons.Default.Search),
+                            Triple(2, strings.navImport, if (currentTab == 2) Icons.Filled.AddCircle else Icons.Outlined.AddCircleOutline),
+                            Triple(3, strings.navLibrary, if (currentTab == 3) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic)
                         )
 
                         for ((tabIndex, label, icon) in items) {
@@ -455,7 +474,20 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
                 onSetPlaybackSpeed = { speed -> playerManager.setPlaybackSpeed(speed) },
                 onToggleEconomyMode = { viewModel.toggleEconomyMode() },
+                onOpenLanguagePicker = { showLanguagePicker = true },
                 onDismiss = { showPlayerOptions = false }
+            )
+        }
+
+        // Language Picker Modal Sheet
+        AnimatedVisibility(
+            visible = showLanguagePicker,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            LanguagePickerSheet(
+                onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
+                onDismiss = { showLanguagePicker = false }
             )
         }
 

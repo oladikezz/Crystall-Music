@@ -2,8 +2,7 @@ package com.crystall.music.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +21,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -34,8 +35,12 @@ import com.crystall.music.R
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.engine.YouTubeEngine
+import com.crystall.music.ui.components.EqualizerVisualizer
 import com.crystall.music.ui.components.TrackItem
+import com.crystall.music.ui.i18n.LocalAppLanguage
+import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
@@ -47,7 +52,7 @@ fun HomeScreen(
     favoriteIds: Set<String>,
     isLoading: Boolean,
     hasCustomTastes: Boolean = false,
-    selectedMood: String = "Все",
+    selectedMood: String = "all",
     isEconomyMode: Boolean = true,
     onSelectMood: (String) -> Unit = {},
     onToggleEconomyMode: () -> Unit = {},
@@ -56,9 +61,33 @@ fun HomeScreen(
     onFavoriteClick: (Track) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToImport: () -> Unit,
-    onOpenTastePicker: () -> Unit = {}
+    onOpenTastePicker: () -> Unit = {},
+    onOpenLanguagePicker: () -> Unit = {},
+    onPlayMyWave: () -> Unit = {}
 ) {
-    val moods = listOf("Все", "Для отдыха", "Энергия", "Тренировка", "Фокус", "В дорогу")
+    val strings = LocalStrings.current
+    val currentLang = LocalAppLanguage.current
+
+    // Localized mood list: Pair of key to localized display name
+    val moodList = listOf(
+        "all" to strings.moodAll,
+        "relax" to strings.moodRelax,
+        "energy" to strings.moodEnergy,
+        "workout" to strings.moodWorkout,
+        "focus" to strings.moodFocus,
+        "road" to strings.moodRoad
+    )
+
+    // Dynamic greeting based on hour of day
+    val greeting = remember(strings) {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 5..11 -> strings.greetingMorning
+            in 12..16 -> strings.greetingAfternoon
+            in 17..22 -> strings.greetingEvening
+            else -> strings.greetingNight
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -67,142 +96,319 @@ fun HomeScreen(
             .statusBarsPadding()
             .padding(bottom = 96.dp)
     ) {
-        // 1. YouTube Music Top Bar
+        // -------------------------------------------------------------
+        // 1. TOP BAR: Brand, Greeting, Language Pill, Data Saver Pill, Actions
+        // -------------------------------------------------------------
         item {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                // Left: Logo + Crystall Music Title
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_crystall_logo),
-                        contentDescription = "Crystall Music",
-                        modifier = Modifier.size(30.dp)
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Crystall",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Music",
-                            color = YtTextSecondary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Normal,
-                            letterSpacing = (-0.5).sp
-                        )
-                    }
-                }
-
-                // Right: Data Saver Capsule, Search & Taste Buttons
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Data Saver Mode Toggle Pill
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (isEconomyMode) Color(0x2E30D158) else Color(0x2EFFFFFF)
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (isEconomyMode) GreenSuccess.copy(alpha = 0.6f) else Color(0x44FFFFFF),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .clickable { onToggleEconomyMode() }
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        contentAlignment = Alignment.Center
+                    // Left: Logo & Brand
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_crystall_logo),
+                            contentDescription = "Crystall Music",
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Crystall",
+                                    color = Color.White,
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.5).sp
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Music",
+                                    color = YtTextSecondary,
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    letterSpacing = (-0.5).sp
+                                )
+                            }
+                            Text(
+                                text = greeting,
+                                color = YtTextSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
+
+                    // Right: Language Pill, Data Saver Pill, Search & Taste Buttons
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Language Pill Switcher
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0x24FFFFFF))
+                                .border(1.dp, Color(0x35FFFFFF), RoundedCornerShape(16.dp))
+                                .clickable { onOpenLanguagePicker() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = currentLang.flag,
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    text = currentLang.code.uppercase(),
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Data Saver Mode Toggle Pill
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (isEconomyMode) Color(0x2E30D158) else Color(0x22FFFFFF)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isEconomyMode) GreenSuccess.copy(alpha = 0.6f) else Color(0x35FFFFFF),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable { onToggleEconomyMode() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (isEconomyMode) "⚡ Эконом" else "💎 Норм",
+                                text = if (isEconomyMode) strings.dataSaverEco else strings.dataSaverNorm,
                                 color = if (isEconomyMode) GreenSuccess else Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                    }
 
-                    // Search Icon
-                    IconButton(
-                        onClick = onNavigateToSearch,
-                        modifier = Modifier.size(38.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                        // Taste Star Button
+                        IconButton(
+                            onClick = onOpenTastePicker,
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (hasCustomTastes) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                contentDescription = "Taste",
+                                tint = if (hasCustomTastes) Color(0xFFFFD700) else Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Search Icon
+                        IconButton(
+                            onClick = onNavigateToSearch,
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        // -------------------------------------------------------------
+        // 2. YANDEX MUSIC "МОЯ ВОЛНА" / MY WAVE HERO FLOW CARD (Liquid Glass Aurora)
+        // -------------------------------------------------------------
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .shadow(
+                        elevation = 20.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        spotColor = Color(0xFF6366F1).copy(alpha = 0.35f)
+                    )
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF1E1B4B), // Deep indigo
+                                Color(0xFF0F172A), // Obsidian
+                                Color(0xFF092C3E), // Deep cyan glow
+                                Color(0xFF1E1B4B)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.linearGradient(
+                            listOf(
+                                Color(0x66818CF8),
+                                Color(0x33FFFFFF),
+                                Color(0x2238BDF8)
+                            )
+                        ),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .clickable { onPlayMyWave() }
+                    .padding(18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        // Badge
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x33818CF8))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = Color(0xFFA5B4FC),
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = "FLOW • АЛГОРИТМ",
+                                        color = Color(0xFFA5B4FC),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            }
+
+                            // Live sound wave equalizer animation
+                            EqualizerVisualizer(
+                                isPlaying = isPlaying,
+                                barCount = 4,
+                                barWidth = 2.5.dp,
+                                maxHeight = 12.dp,
+                                minHeight = 3.dp,
+                                barSpacing = 1.5.dp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = strings.waveTitle,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = strings.waveSubtitle,
+                            color = Color(0xCCFFFFFF),
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    // Taste Star Button
-                    IconButton(
-                        onClick = onOpenTastePicker,
-                        modifier = Modifier.size(38.dp)
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Circular Glowing Glass Play Button
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .shadow(12.dp, CircleShape, spotColor = Color(0xFF6366F1))
+                            .clip(CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF818CF8),
+                                        Color(0xFF4F46E5)
+                                    )
+                                )
+                            )
+                            .border(1.dp, Color(0x66FFFFFF), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (hasCustomTastes) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                            contentDescription = "Taste",
-                            tint = if (hasCustomTastes) Color(0xFFFFD700) else Color.White,
-                            modifier = Modifier.size(24.dp)
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = strings.waveButtonPlay,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(10.dp))
         }
 
-        // 2. YouTube Music Mood / Category Filter Chips (Horizontal Row)
+        // -------------------------------------------------------------
+        // 3. MOOD / CATEGORY FILTER CHIPS (Liquid Glass Horizontal Row)
+        // -------------------------------------------------------------
         item {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 14.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(moods) { mood ->
-                    val isSelected = (mood == selectedMood)
+                items(moodList) { (key, displayName) ->
+                    val isSelected = (key == selectedMood || (selectedMood == "Все" && key == "all"))
                     val bg by animateColorAsState(
-                        targetValue = if (isSelected) YtChipSelectedBackground else YtChipBackground,
+                        targetValue = if (isSelected) Color.White else Color(0x1AFFFFFF),
                         label = "chip_bg"
                     )
                     val textCol by animateColorAsState(
-                        targetValue = if (isSelected) YtChipSelectedText else YtTextPrimary,
+                        targetValue = if (isSelected) Color.Black else YtTextPrimary,
                         label = "chip_text"
                     )
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(bg)
                             .border(
                                 width = 1.dp,
-                                color = if (isSelected) Color.Transparent else YtChipBorder,
-                                shape = RoundedCornerShape(8.dp)
+                                color = if (isSelected) Color.Transparent else Color(0x28FFFFFF),
+                                shape = RoundedCornerShape(12.dp)
                             )
-                            .clickable { onSelectMood(mood) }
+                            .clickable { onSelectMood(key) }
                             .padding(horizontal = 14.dp, vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = mood,
+                            text = displayName,
                             color = textCol,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
@@ -212,8 +418,9 @@ fun HomeScreen(
             }
         }
 
-        // 3. YouTube Music Signature Section: "Быстрый выбор" (Quick Picks)
-        // Horizontal scroll with columns of 4 tracks each
+        // -------------------------------------------------------------
+        // 4. QUICK PICKS (YouTube Music 4-Item Columns Grid)
+        // -------------------------------------------------------------
         val quickPicks = if (trendingTracks.isNotEmpty()) trendingTracks.take(16) else emptyList()
         if (quickPicks.isNotEmpty()) {
             item {
@@ -223,24 +430,23 @@ fun HomeScreen(
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Включить радио по треку",
+                        text = strings.quickPicksSubtitle,
                         color = YtTextSecondary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal
                     )
                     Text(
-                        text = "Быстрый выбор",
+                        text = strings.quickPicksTitle,
                         color = YtTextPrimary,
-                        fontSize = 22.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
                     )
                 }
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             item {
-                // Chunk into columns of 4 items each
                 val columns = quickPicks.chunked(4)
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -264,20 +470,22 @@ fun HomeScreen(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
             }
         }
 
-        // 4. "Снова послушайте" (Listen Again / Recently Played)
+        // -------------------------------------------------------------
+        // 5. SPOTIFY "LISTEN AGAIN" (Horizontal Album Carousel)
+        // -------------------------------------------------------------
         if (recentTracks.isNotEmpty()) {
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Снова послушайте",
+                        text = strings.listenAgainTitle,
                         color = YtTextPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
@@ -303,19 +511,21 @@ fun HomeScreen(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
             }
         }
 
-        // 5. Import Playlist Banner (YouTube Music style card)
+        // -------------------------------------------------------------
+        // 6. IMPORT PLAYLIST BANNER (Frosted Glass Card)
+        // -------------------------------------------------------------
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(YtSurface)
-                    .border(1.dp, YtSurfaceBorder, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0x1AFFFFFF))
+                    .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(16.dp))
                     .clickable { onNavigateToImport() }
                     .padding(16.dp)
             ) {
@@ -345,13 +555,13 @@ fun HomeScreen(
                         }
                         Column {
                             Text(
-                                text = "Импорт плейлиста",
+                                text = strings.importBannerTitle,
                                 color = YtTextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "YouTube Music, SoundCloud, ссылки",
+                                text = strings.importBannerSubtitle,
                                 color = YtTextSecondary,
                                 fontSize = 12.sp
                             )
@@ -368,7 +578,9 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(14.dp))
         }
 
-        // 6. Section Header: "Рекомендации и чарты" / "Хиты"
+        // -------------------------------------------------------------
+        // 7. RECOMMENDATIONS & TOP CHARTS
+        // -------------------------------------------------------------
         item {
             Row(
                 modifier = Modifier
@@ -377,8 +589,17 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val headerTitle = if (selectedMood != "all" && selectedMood != "Все") {
+                    val matchingMood = moodList.firstOrNull { it.first == selectedMood }?.second ?: selectedMood
+                    "Музыка: $matchingMood"
+                } else if (hasCustomTastes) {
+                    strings.recommendationsTitle
+                } else {
+                    strings.topChartsTitle
+                }
+
                 Text(
-                    text = if (selectedMood != "Все") "Музыка: $selectedMood" else if (hasCustomTastes) "Рекомендации для вас" else "Топ чарты и хиты",
+                    text = headerTitle,
                     color = YtTextPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -388,7 +609,7 @@ fun HomeScreen(
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = YtRed,
+                        color = Color.White,
                         strokeWidth = 2.dp
                     )
                 }
@@ -412,7 +633,7 @@ fun HomeScreen(
 }
 
 // -------------------------------------------------------------
-// YouTube Music Quick Pick Track Item (used in 4-item columns)
+// YouTube Music / SoundCloud Quick Pick Track Item
 // -------------------------------------------------------------
 @Composable
 fun QuickPickTrackItem(
@@ -429,10 +650,15 @@ fun QuickPickTrackItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isCurrentTrack) Color(0x22FFFFFF) else Color.Transparent)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isCurrentTrack) Color(0x22FFFFFF) else Color(0x0EFFFFFF))
+            .border(
+                width = 0.5.dp,
+                color = if (isCurrentTrack) Color(0x44FFFFFF) else Color(0x18FFFFFF),
+                shape = RoundedCornerShape(12.dp)
+            )
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 6.dp),
+            .padding(vertical = 5.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -440,7 +666,7 @@ fun QuickPickTrackItem(
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(YtSurface),
             contentAlignment = Alignment.Center
         ) {
@@ -464,15 +690,26 @@ fun QuickPickTrackItem(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f)),
+                        .background(Color.Black.copy(alpha = 0.55f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    if (isPlaying) {
+                        EqualizerVisualizer(
+                            isPlaying = true,
+                            barCount = 3,
+                            barWidth = 2.dp,
+                            maxHeight = 14.dp,
+                            minHeight = 3.dp,
+                            barSpacing = 1.5.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
@@ -481,9 +718,9 @@ fun QuickPickTrackItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrentTrack) YtRed else YtTextPrimary,
+                color = if (isCurrentTrack) Color.White else YtTextPrimary,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -507,7 +744,7 @@ fun QuickPickTrackItem(
 }
 
 // -------------------------------------------------------------
-// YouTube Music Square Album Card (used in carousels)
+// Spotify / YouTube Music Square Album Card (for carousels)
 // -------------------------------------------------------------
 @Composable
 fun YtAlbumCard(
@@ -529,8 +766,10 @@ fun YtAlbumCard(
         Box(
             modifier = Modifier
                 .size(135.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(YtSurface),
+                .shadow(12.dp, RoundedCornerShape(14.dp), spotColor = Color.Black.copy(alpha = 0.6f))
+                .clip(RoundedCornerShape(14.dp))
+                .background(YtSurface)
+                .border(0.5.dp, Color(0x25FFFFFF), RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (thumb.isNotBlank()) {
@@ -556,12 +795,23 @@ fun YtAlbumCard(
                         .background(Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(38.dp)
-                    )
+                    if (isPlaying) {
+                        EqualizerVisualizer(
+                            isPlaying = true,
+                            barCount = 4,
+                            barWidth = 3.dp,
+                            maxHeight = 22.dp,
+                            minHeight = 4.dp,
+                            barSpacing = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.PlayCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(38.dp)
+                        )
+                    }
                 }
             }
         }
@@ -570,9 +820,9 @@ fun YtAlbumCard(
 
         Text(
             text = track.title,
-            color = if (isCurrentTrack) YtRed else YtTextPrimary,
+            color = if (isCurrentTrack) Color.White else YtTextPrimary,
             fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
