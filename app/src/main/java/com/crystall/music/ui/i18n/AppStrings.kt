@@ -125,7 +125,33 @@ data class AppStrings(
     val tasteSubtitle: String,
     val tasteSaveBtn: String,
     val tasteSkipBtn: String,
-    val tasteSelectedCount: String
+    val tasteSelectedCount: String,
+
+    // Settings Screen
+    val settingsTitle: String,
+    val settingsSectionGeneral: String,
+    val settingsAppLanguage: String,
+    val settingsAppLanguageDesc: String,
+    val settingsSectionAudio: String,
+    val settingsDataSaver: String,
+    val settingsDataSaverDesc: String,
+    val settingsSectionPlayback: String,
+    val settingsEndlessRadio: String,
+    val settingsEndlessRadioDesc: String,
+    val settingsSpeed: String,
+    val settingsSleepTimer: String,
+    val settingsSleepTimerOff: String,
+    val settingsSectionTaste: String,
+    val settingsTasteArtists: String,
+    val settingsTasteArtistsDesc: String,
+    val settingsSectionStorage: String,
+    val settingsDownloadedTracks: String,
+    val settingsClearCache: String,
+    val settingsClearCacheDesc: String,
+    val settingsCacheCleared: String,
+    val settingsSectionAbout: String,
+    val settingsVersion: String,
+    val settingsAboutDesc: String
 )
 
 val EnglishStrings = AppStrings(
@@ -239,7 +265,32 @@ val EnglishStrings = AppStrings(
     tasteSubtitle = "We will tune your personal stream and recommendations",
     tasteSaveBtn = "Save Taste",
     tasteSkipBtn = "Skip for Now",
-    tasteSelectedCount = "Selected: %d"
+    tasteSelectedCount = "Selected: %d",
+
+    settingsTitle = "Settings",
+    settingsSectionGeneral = "Language & Display",
+    settingsAppLanguage = "App Language",
+    settingsAppLanguageDesc = "Change interface language",
+    settingsSectionAudio = "Audio & Data Saving",
+    settingsDataSaver = "Data Saver Mode",
+    settingsDataSaverDesc = "Reduces data usage to ~1 MB per song",
+    settingsSectionPlayback = "Playback",
+    settingsEndlessRadio = "Autoplay Similar Tracks",
+    settingsEndlessRadioDesc = "Keep playing music when queue ends",
+    settingsSpeed = "Playback Speed",
+    settingsSleepTimer = "Sleep Timer",
+    settingsSleepTimerOff = "Off",
+    settingsSectionTaste = "Music Preferences",
+    settingsTasteArtists = "Favorite Artists",
+    settingsTasteArtistsDesc = "Personalize your recommendations and My Wave",
+    settingsSectionStorage = "Storage & Cache",
+    settingsDownloadedTracks = "Downloaded Music",
+    settingsClearCache = "Clear Stream Cache",
+    settingsClearCacheDesc = "Free up memory and temporary stream files",
+    settingsCacheCleared = "Cache cleared successfully",
+    settingsSectionAbout = "About",
+    settingsVersion = "Version 2.2",
+    settingsAboutDesc = "High fidelity music streaming without ads"
 )
 
 val RussianStrings = AppStrings(
@@ -353,7 +404,32 @@ val RussianStrings = AppStrings(
     tasteSubtitle = "На основе вашего вкуса мы настроим «Мою Волну» и рекомендации",
     tasteSaveBtn = "Сохранить выбор",
     tasteSkipBtn = "Пропустить",
-    tasteSelectedCount = "Выбрано: %d"
+    tasteSelectedCount = "Выбрано: %d",
+
+    settingsTitle = "Настройки",
+    settingsSectionGeneral = "Язык и интерфейс",
+    settingsAppLanguage = "Язык приложения",
+    settingsAppLanguageDesc = "Смена языка приложения",
+    settingsSectionAudio = "Звук и экономия интернета",
+    settingsDataSaver = "Режим экономии трафика",
+    settingsDataSaverDesc = "Снижает расход интернета до ~1 МБ на трек",
+    settingsSectionPlayback = "Воспроизведение",
+    settingsEndlessRadio = "Автовоспроизведение похожих треков",
+    settingsEndlessRadioDesc = "Продолжать играть музыку, когда очередь заканчивается",
+    settingsSpeed = "Скорость воспроизведения",
+    settingsSleepTimer = "Таймер сна",
+    settingsSleepTimerOff = "Выключен",
+    settingsSectionTaste = "Музыкальные предпочтения",
+    settingsTasteArtists = "Любимые исполнители",
+    settingsTasteArtistsDesc = "Настройка рекомендаций и Моей Волны",
+    settingsSectionStorage = "Память и кэш",
+    settingsDownloadedTracks = "Скачанная музыка",
+    settingsClearCache = "Очистить кэш потоков",
+    settingsClearCacheDesc = "Освободить временные файлы и ссылки",
+    settingsCacheCleared = "Кэш успешно очищен",
+    settingsSectionAbout = "О приложении",
+    settingsVersion = "Версия 2.2",
+    settingsAboutDesc = "Универсальный стриминг без рекламы"
 )
 
 val AzerbaijaniStrings = AppStrings(
@@ -467,7 +543,32 @@ val AzerbaijaniStrings = AppStrings(
     tasteSubtitle = "Zövqünüzə uyğun olaraq «Mənim Dalğam» və tövsiyələr tənzimlənəcək",
     tasteSaveBtn = "Seçimi saxla",
     tasteSkipBtn = "Keç",
-    tasteSelectedCount = "Seçildi: %d"
+    tasteSelectedCount = "Seçildi: %d",
+
+    settingsTitle = "Tənzimləmələr",
+    settingsSectionGeneral = "Dil və Görünüş",
+    settingsAppLanguage = "Tətbiq dili",
+    settingsAppLanguageDesc = "Tətbiqin dilini dəyişdirin",
+    settingsSectionAudio = "Səs və İnternet qənaəti",
+    settingsDataSaver = "Trafikə qənaət rejimi",
+    settingsDataSaverDesc = "Hər mahnı üçün sərfiyyatı ~1 MB-a endirir",
+    settingsSectionPlayback = "Oxutma",
+    settingsEndlessRadio = "Oxşar mahnıların avtomatik davamı",
+    settingsEndlessRadioDesc = "Növbə bitdikdə oxşar musiqiləri davam etdir",
+    settingsSpeed = "Oxutma sürəti",
+    settingsSleepTimer = "Yuxu taymeri",
+    settingsSleepTimerOff = "Söndürülüb",
+    settingsSectionTaste = "Musiqi zövqü",
+    settingsTasteArtists = "Sevimli sənətçilər",
+    settingsTasteArtistsDesc = "Fərdi tövsiyələri və «Mənim Dalğam»ı tənzimləyin",
+    settingsSectionStorage = "Yaddaş və Keş",
+    settingsDownloadedTracks = "Yüklənmiş musiqi",
+    settingsClearCache = "Axın keşini təmizlə",
+    settingsClearCacheDesc = "Müvəqqəti axın fayllarını və yaddaşı boşaldın",
+    settingsCacheCleared = "Keş uğurla təmizləndi",
+    settingsSectionAbout = "Haqqında",
+    settingsVersion = "Versiya 2.2",
+    settingsAboutDesc = "Reklamsız universal musiqi pleyeri"
 )
 
 val TurkishStrings = AppStrings(
@@ -581,7 +682,32 @@ val TurkishStrings = AppStrings(
     tasteSubtitle = "Zevkinize göre «Benim Dalgam» ve önerileri ayarlayacağız",
     tasteSaveBtn = "Seçimi Kaydet",
     tasteSkipBtn = "Şimdilik Atla",
-    tasteSelectedCount = "Seçilen: %d"
+    tasteSelectedCount = "Seçilen: %d",
+
+    settingsTitle = "Ayarlar",
+    settingsSectionGeneral = "Dil ve Görünüm",
+    settingsAppLanguage = "Uygulama Dili",
+    settingsAppLanguageDesc = "Uygulama dilini değiştirin",
+    settingsSectionAudio = "Ses ve Veri Tasarrufu",
+    settingsDataSaver = "Veri Tasarrufu Modu",
+    settingsDataSaverDesc = "Şarkı başına internet kullanımını ~1 MB'a düşürür",
+    settingsSectionPlayback = "Oynatma",
+    settingsEndlessRadio = "Benzer Parçaları Otomatik Çal",
+    settingsEndlessRadioDesc = "Sıra bittiğinde benzer müzikleri çalmaya devam et",
+    settingsSpeed = "Oynatma Hızı",
+    settingsSleepTimer = "Uyku Zamanlayıcısı",
+    settingsSleepTimerOff = "Kapalı",
+    settingsSectionTaste = "Müzik Tercihleri",
+    settingsTasteArtists = "Favori Sanatçılar",
+    settingsTasteArtistsDesc = "Önerilerinizi ve Benim Dalgam akışını kişiselleştirin",
+    settingsSectionStorage = "Depolama ve Önbellek",
+    settingsDownloadedTracks = "İndirilen Müzikler",
+    settingsClearCache = "Akış Önbelleğini Temizle",
+    settingsClearCacheDesc = "Geçici akış dosyalarını ve belleği boşaltın",
+    settingsCacheCleared = "Önbellek başarıyla temizlendi",
+    settingsSectionAbout = "Hakkında",
+    settingsVersion = "Sürüm 2.2",
+    settingsAboutDesc = "Reklamsız evrensel müzik çalar"
 )
 
 fun getStringsForLanguage(language: AppLanguage): AppStrings {

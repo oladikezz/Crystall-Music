@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -234,7 +235,7 @@ fun LibraryScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.QueueMusic,
+                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                                 contentDescription = null,
                                 tint = YtTextSecondary.copy(alpha = 0.5f),
                                 modifier = Modifier.size(56.dp)
@@ -281,7 +282,7 @@ fun LibraryScreen(
                                         )
                                     } else {
                                         Icon(
-                                            imageVector = Icons.Default.QueueMusic,
+                                            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                                             contentDescription = null,
                                             tint = YtTextSecondary,
                                             modifier = Modifier.size(28.dp)

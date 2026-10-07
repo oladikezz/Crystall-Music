@@ -3,6 +3,8 @@ package com.crystall.music.player
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.net.wifi.WifiManager
+import android.os.PowerManager
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -50,6 +52,44 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val dbHelper = MusicDatabaseHelper.getInstance(context)
 
+    // Hardware wake locks to guarantee continuous playback while screen is off / locked
+    private val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+    private val wakeLock: PowerManager.WakeLock? = try {
+        powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CrystallMusic:PlaybackWakeLock")?.apply {
+            setReferenceCounted(false)
+        }
+    } catch (_: Exception) { null }
+
+    private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+    private val wifiLock: WifiManager.WifiLock? = try {
+        wifiManager?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "CrystallMusic:WifiLock")?.apply {
+            setReferenceCounted(false)
+        }
+    } catch (_: Exception) { null }
+
+    private fun acquireWakeLocks(timeoutMs: Long = 45000L) {
+        try {
+            wakeLock?.acquire(timeoutMs)
+        } catch (_: Exception) {}
+        try {
+            if (wifiLock?.isHeld == false) wifiLock.acquire()
+        } catch (_: Exception) {}
+    }
+
+    private fun releaseWakeLocksIfIdle() {
+        if (!_isPlaying.value && !_isBuffering.value) {
+            try {
+                if (wakeLock?.isHeld == true) wakeLock.release()
+            } catch (_: Exception) {}
+            try {
+                if (wifiLock?.isHeld == true) wifiLock.release()
+            } catch (_: Exception) {}
+        }
+    }
+
+    // In-memory cache for preloaded stream URLs (instant track transitions)
+    private val preloadedStreamUrls = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
         .setUserAgent("com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip")
         .setConnectTimeoutMs(20000)
@@ -82,6 +122,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
             true // handle audio focus automatically
         )
         .setHandleAudioBecomingNoisy(true)
+        .setWakeMode(C.WAKE_MODE_NETWORK)
         .build()
 
     var mediaSession: MediaSession? = null
@@ -163,6 +204,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     startPlaybackService()
                 } else {
                     stopProgressTracker()
+                    releaseWakeLocksIfIdle()
                 }
                 com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
             }
@@ -173,6 +215,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     consecutiveErrorCount = 0
                     _duration.value = player.duration.coerceAtLeast(0L)
                 } else if (playbackState == Player.STATE_ENDED) {
+                    acquireWakeLocks(45000L)
                     onTrackEnded()
                 }
                 com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
@@ -189,6 +232,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     }
                 } else {
                     _isPlaying.value = false
+                    releaseWakeLocksIfIdle()
                 }
             }
         })
@@ -201,6 +245,9 @@ class MusicPlayerManager private constructor(private val context: Context) {
     }
 
     fun playTrack(track: Track, newQueue: List<Track>? = null) {
+        acquireWakeLocks(45000L)
+        startPlaybackService()
+
         if (newQueue != null && newQueue.isNotEmpty()) {
             _queue.value = newQueue
         } else if (_queue.value.isEmpty() || _queue.value.none { it.id == track.id }) {
@@ -226,7 +273,8 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     if (dbTrack?.isDownloaded == true && !dbTrack.localPath.isNullOrBlank()) {
                         playableUri = dbTrack.localPath
                     } else {
-                        playableUri = UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
+                        // Check preloaded cache first for instant 0ms playback!
+                        playableUri = preloadedStreamUrls[track.id] ?: UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
                     }
                 }
 
@@ -287,8 +335,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
                 withContext(Dispatchers.Main) {
                     if (_currentTrack.value?.id != track.id) return@withContext
-                    player.stop()
-                    player.clearMediaItems()
+                    // Seamless setMediaItem without clearing/stopping to keep foreground service alive
                     player.setMediaItem(mediaItem, true)
                     player.prepare()
                     player.playWhenReady = true
@@ -319,6 +366,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     withContext(Dispatchers.Main) {
                         _queue.value = _queue.value + freshTracks.take(15)
                     }
+                    preloadNextTrack()
                 }
             } catch (_: Exception) {}
         }
@@ -333,7 +381,21 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 val idx = q.indexOfFirst { it.id == cur.id }
                 if (idx != -1 && idx + 1 < q.size) {
                     val nextTrack = q[idx + 1]
-                    UniversalMusicResolver.getStreamUrlForTrack(nextTrack, _isEconomyMode.value)
+                    if (!preloadedStreamUrls.containsKey(nextTrack.id)) {
+                        val streamUrl = UniversalMusicResolver.getStreamUrlForTrack(nextTrack, _isEconomyMode.value)
+                        if (!streamUrl.isNullOrBlank()) {
+                            preloadedStreamUrls[nextTrack.id] = streamUrl
+                        }
+                    }
+                    if (idx + 2 < q.size) {
+                        val nextTrack2 = q[idx + 2]
+                        if (!preloadedStreamUrls.containsKey(nextTrack2.id)) {
+                            val streamUrl2 = UniversalMusicResolver.getStreamUrlForTrack(nextTrack2, _isEconomyMode.value)
+                            if (!streamUrl2.isNullOrBlank()) {
+                                preloadedStreamUrls[nextTrack2.id] = streamUrl2
+                            }
+                        }
+                    }
                 }
             } catch (_: Exception) {}
         }
@@ -380,6 +442,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
     }
 
     fun skipNext() {
+        acquireWakeLocks(45000L)
         val q = _queue.value
         val current = _currentTrack.value
 
@@ -417,6 +480,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
             _currentPosition.value = 0L
             player.seekTo(0)
             player.pause()
+            releaseWakeLocksIfIdle()
         }
     }
 
@@ -469,6 +533,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
             _sleepTimerRemainingMs.value = null
             player.pause()
             player.volume = 1.0f
+            releaseWakeLocksIfIdle()
         }
     }
 
@@ -500,10 +565,12 @@ class MusicPlayerManager private constructor(private val context: Context) {
     }
 
     private fun onTrackEnded() {
+        acquireWakeLocks(45000L)
         if (_isSleepTimerEndOfTrack.value) {
             _isSleepTimerEndOfTrack.value = false
             player.pause()
             player.seekTo(0)
+            releaseWakeLocksIfIdle()
             return
         }
 
@@ -519,6 +586,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
     }
 
     private fun fetchMoreAndPlayNext(current: Track) {
+        acquireWakeLocks(45000L)
         _isBuffering.value = true
         scope.launch {
             try {
@@ -536,6 +604,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                         player.seekTo(0)
                         player.pause()
                         _isBuffering.value = false
+                        releaseWakeLocksIfIdle()
                     }
                 }
             } catch (_: Exception) {
@@ -544,6 +613,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     player.seekTo(0)
                     player.pause()
                     _isBuffering.value = false
+                    releaseWakeLocksIfIdle()
                 }
             }
         }
@@ -559,6 +629,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     withContext(Dispatchers.Main) {
                         _queue.value = _queue.value + fresh.take(10)
                     }
+                    preloadNextTrack()
                 }
             } catch (_: Exception) {}
         }
@@ -569,8 +640,14 @@ class MusicPlayerManager private constructor(private val context: Context) {
         progressTrackerJob = scope.launch(Dispatchers.Main) {
             while (isActive) {
                 _currentPosition.value = player.currentPosition.coerceAtLeast(0L)
-                if (player.duration > 0) {
-                    _duration.value = player.duration
+                val curDur = player.duration
+                if (curDur > 0) {
+                    _duration.value = curDur
+                    val remainingMs = curDur - _currentPosition.value
+                    // Proactively preload next track URLs when approaching end of song
+                    if (remainingMs in 1..25000L || (_currentPosition.value.toFloat() / curDur.toFloat()) > 0.70f) {
+                        preloadNextTrack()
+                    }
                 }
                 delay(400)
             }
@@ -580,6 +657,13 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private fun stopProgressTracker() {
         progressTrackerJob?.cancel()
         progressTrackerJob = null
+    }
+
+    fun clearCache() {
+        preloadedStreamUrls.clear()
+        try {
+            context.cacheDir.deleteRecursively()
+        } catch (_: Exception) {}
     }
 
     fun toggleEconomyMode() {

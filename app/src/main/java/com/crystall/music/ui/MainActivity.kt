@@ -139,6 +139,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
     var isSplashVisible by remember { mutableStateOf(true) }
     var showPlayerOptions by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     val downloadStates by viewModel.downloadManager.downloadStates.collectAsState()
 
@@ -146,19 +147,22 @@ fun MainAppScreen(viewModel: MainViewModel) {
     BackHandler(enabled = isFullPlayerVisible) {
         viewModel.hideFullPlayer()
     }
-    BackHandler(enabled = !isFullPlayerVisible && showPlayerOptions) {
+    BackHandler(enabled = !isFullPlayerVisible && showSettings) {
+        showSettings = false
+    }
+    BackHandler(enabled = !isFullPlayerVisible && !showSettings && showPlayerOptions) {
         showPlayerOptions = false
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && showLanguagePicker) {
+    BackHandler(enabled = !isFullPlayerVisible && !showSettings && !showPlayerOptions && showLanguagePicker) {
         showLanguagePicker = false
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && !showLanguagePicker && selectedPlaylist != null) {
+    BackHandler(enabled = !isFullPlayerVisible && !showSettings && !showPlayerOptions && !showLanguagePicker && selectedPlaylist != null) {
         viewModel.closePlaylistDetail()
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && !showLanguagePicker && selectedPlaylist == null && showTastePicker) {
+    BackHandler(enabled = !isFullPlayerVisible && !showSettings && !showPlayerOptions && !showLanguagePicker && selectedPlaylist == null && showTastePicker) {
         viewModel.dismissTastePicker(skipped = true)
     }
-    BackHandler(enabled = !isFullPlayerVisible && !showPlayerOptions && !showLanguagePicker && selectedPlaylist == null && !showTastePicker && currentTab != 0) {
+    BackHandler(enabled = !isFullPlayerVisible && !showSettings && !showPlayerOptions && !showLanguagePicker && selectedPlaylist == null && !showTastePicker && currentTab != 0) {
         viewModel.setTab(0)
     }
 
@@ -201,6 +205,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         onNavigateToImport = { viewModel.setTab(2) },
                         onOpenTastePicker = { viewModel.openTastePicker() },
                         onOpenLanguagePicker = { showLanguagePicker = true },
+                        onOpenSettings = { showSettings = true },
                         onPlayMyWave = { viewModel.playMyWave() }
                     )
                     1 -> SearchScreen(
@@ -287,83 +292,53 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // YouTube Music Bottom Navigation Bar
-            Box(
+            // YouTube Music & Spotify Authentic Docked Bottom Navigation Bar
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center
+                    .height(58.dp),
+                color = Color(0xFF0F0F12),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 0.5.dp,
+                    color = Color(0x18FFFFFF)
+                )
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .shadow(
-                            elevation = 16.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            spotColor = Color.Black.copy(alpha = 0.8f)
-                        ),
-                    shape = RoundedCornerShape(20.dp),
-                    color = YtSurface,
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = YtSurfaceBorder
-                    )
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        val strings = LocalStrings.current
-                        val items = listOf(
-                            Triple(0, strings.navHome, if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home),
-                            Triple(1, strings.navSearch, Icons.Default.Search),
-                            Triple(2, strings.navImport, if (currentTab == 2) Icons.Filled.AddCircle else Icons.Outlined.AddCircleOutline),
-                            Triple(3, strings.navLibrary, if (currentTab == 3) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic)
-                        )
+                    val strings = LocalStrings.current
+                    val items = listOf(
+                        Triple(0, strings.navHome, if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home),
+                        Triple(1, strings.navSearch, if (currentTab == 1) Icons.Filled.Search else Icons.Outlined.Search),
+                        Triple(2, strings.navImport, if (currentTab == 2) Icons.Filled.AddCircle else Icons.Outlined.AddCircleOutline),
+                        Triple(3, strings.navLibrary, if (currentTab == 3) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic)
+                    )
 
-                        for ((tabIndex, label, icon) in items) {
-                            val isSelected = currentTab == tabIndex
-                            val scale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.05f else 1f,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                label = "tab_scale_$tabIndex"
+                    for ((tabIndex, label, icon) in items) {
+                        val isSelected = currentTab == tabIndex
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable { viewModel.setTab(tabIndex) },
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                tint = if (isSelected) Color.White else YtTextSecondary,
+                                modifier = Modifier.size(24.dp)
                             )
-
-                            Box(
-                                modifier = Modifier
-                                    .scale(scale)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        if (isSelected) Color(0x28FFFFFF) else Color.Transparent
-                                    )
-                                    .clickable { viewModel.setTab(tabIndex) }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = label,
-                                        tint = if (isSelected) Color.White else YtTextSecondary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    if (isSelected) {
-                                        Text(
-                                            text = label,
-                                            color = Color.White,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = label,
+                                color = if (isSelected) Color.White else YtTextSecondary,
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
                         }
                     }
                 }
@@ -488,6 +463,33 @@ fun MainAppScreen(viewModel: MainViewModel) {
             LanguagePickerSheet(
                 onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
                 onDismiss = { showLanguagePicker = false }
+            )
+        }
+
+        // Dedicated Settings Screen
+        AnimatedVisibility(
+            visible = showSettings,
+            enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
+            exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
+        ) {
+            SettingsScreen(
+                isEconomyMode = isEconomyMode,
+                isEndlessRadioEnabled = isEndlessRadioEnabled,
+                playbackSpeed = playbackSpeed,
+                sleepTimerRemainingMs = sleepTimerRemainingMs,
+                isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
+                downloadedTracksCount = downloadedTracks.size,
+                favoriteArtistsCount = favoriteArtists.size,
+                onBackClick = { showSettings = false },
+                onToggleEconomyMode = { viewModel.toggleEconomyMode() },
+                onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
+                onSetPlaybackSpeed = { speed -> playerManager.setPlaybackSpeed(speed) },
+                onSetSleepTimer = { minutes -> playerManager.setSleepTimer(minutes) },
+                onSetSleepTimerEndOfTrack = { playerManager.setSleepTimerUntilEndOfTrack() },
+                onCancelSleepTimer = { playerManager.cancelSleepTimer() },
+                onOpenLanguagePicker = { showLanguagePicker = true },
+                onOpenTastePicker = { viewModel.openTastePicker() },
+                onClearCache = { playerManager.clearCache() }
             )
         }
 

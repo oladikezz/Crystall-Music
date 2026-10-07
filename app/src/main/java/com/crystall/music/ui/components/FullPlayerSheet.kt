@@ -743,7 +743,7 @@ fun FullPlayerSheet(
                                 )
                             }
 
-                            Divider(color = Color(0x1AFFFFFF), thickness = 1.dp)
+                            HorizontalDivider(color = Color(0x1AFFFFFF), thickness = 1.dp)
 
                             // Upcoming Queue List
                             LazyColumn(

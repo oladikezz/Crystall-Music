@@ -57,7 +57,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -65,8 +65,12 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        val player = MusicPlayerManager.getInstance(this).player
-        if (!player.playWhenReady || player.mediaItemCount == 0) {
+        val playerManager = MusicPlayerManager.getInstance(this)
+        val isPlaying = playerManager.isPlaying.value
+        val isBuffering = playerManager.isBuffering.value
+        val queue = playerManager.queue.value
+        // Only stop if playback is stopped and queue is empty
+        if (!isPlaying && !isBuffering && queue.isEmpty()) {
             stopSelf()
         }
     }
