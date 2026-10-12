@@ -1,0 +1,27 @@
+feature,area,priority,original,clone,notes
+Continuous background audio playback when screen locked,playback,must,yes,yes,ExoPlayer with WAKE_MODE_NETWORK and hardware wake locks
+Docked MiniPlayer with top signature red progress line,player,must,yes,yes,Edge-to-edge docked above bottom nav
+Full-screen player with high-res album art and song/video toggle,player,must,yes,yes,S03 FullPlayerSheet
+YouTube Music signature red scrubber seekbar (#FF0000),player,must,yes,yes,Custom slider with elapsed and remaining time
+Transport controls: Shuffle Previous Play/Pause Next Repeat,player,must,yes,yes,Full ExoPlayer integration
+Up Next queue tab with drag reorder and endless autoplay,player,must,yes,yes,UpNext player tab
+Synchronized and plain lyrics tab,player,must,yes,yes,Lyrics tab with auto-scroll and font formatting
+Related music tab with artist tracks and recommendations,player,must,yes,yes,Related tab
+Thumbs Up (Favorite) and Thumbs Down (Dislike) track rating,player,must,yes,yes,Saved to SQLite database
+Lock screen media controls notification with artwork and transport,playback,must,yes,yes,MediaSessionService and DefaultMediaNotificationProvider
+Home screen app widget in YouTube Music style,playback,must,yes,yes,CrystallMusicWidgetProvider with RemoteViews
+Home feed with mood activity filter chips (Relax Workout Energy Focus Road),home,must,yes,yes,Top mood category pills
+Quick Picks 4-track column cards for instant playback,home,must,yes,yes,QuickPickTrackItem columns
+Trending music charts and recommended tracks carousels,home,must,yes,yes,YtAlbumCard carousel
+Search bar with real-time query results for songs artists albums,search,must,yes,yes,InnerTube search engine
+Offline download of tracks for playing without internet connection,library,must,yes,yes,MusicDownloadManager and SQLite storage
+Library screen with filter tabs (Downloads Playlists Favorites),library,must,yes,yes,S05 LibraryScreen
+Import YouTube Music and SoundCloud playlists via link,import,must,yes,yes,UniversalMusicResolver playlist extractor
+Data Saver mode (~1MB/song) and High Quality mode (~3.5MB/song),settings,must,yes,yes,Adaptive bitrate audio selector
+Autoplay endless radio when queue reaches end,playback,must,yes,yes,Preloading queue radio generator
+Sleep timer with presets and end-of-track auto-pause,settings,should,yes,yes,SleepTimer countdown with smooth fadeout
+Playback speed selector (0.8x 1.0x 1.25x 1.5x),settings,should,yes,yes,ExoPlayer playback parameters
+Clear stream and temporary audio cache button,settings,should,yes,yes,Cache manager in SettingsScreen
+Multilingual interface (English Russian Azerbaijani Turkish),settings,should,yes,yes,LocalStrings i18n system
+Google Account OAuth login gate,auth,could,yes,skip,Clean room streaming without requiring user Google login
+YouTube Music Video DRM playback,video,could,yes,skip,Audio-focused streaming engine with clean fallback
