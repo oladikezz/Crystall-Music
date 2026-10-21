@@ -169,7 +169,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
     ) {
         // Main Screen Content with smooth crossfade
         Box(modifier = Modifier.fillMaxSize()) {
@@ -292,15 +292,15 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // YouTube Music & Spotify Authentic Docked Bottom Navigation Bar
+            // Clean Pure White Docked Bottom Navigation Bar
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp),
-                color = Color(0xFF0F0F12),
+                color = LightSurface,
                 border = androidx.compose.foundation.BorderStroke(
                     width = 0.5.dp,
-                    color = Color(0x18FFFFFF)
+                    color = LightBorder
                 )
             ) {
                 Row(
@@ -329,13 +329,13 @@ fun MainAppScreen(viewModel: MainViewModel) {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = label,
-                                tint = if (isSelected) Color.White else YtTextSecondary,
+                                tint = if (isSelected) LightTextPrimary else LightTextSecondary,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = label,
-                                color = if (isSelected) Color.White else YtTextSecondary,
+                                color = if (isSelected) LightTextPrimary else LightTextSecondary,
                                 fontSize = 10.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
@@ -346,8 +346,6 @@ fun MainAppScreen(viewModel: MainViewModel) {
         }
 
         // Full Player Modal Screen
-        // We keep a remembered snapshot of the last non-null track so the exit
-        // animation can complete without crashing on currentTrack!!.
         val lastTrack = remember { mutableStateOf(currentTrack) }
         if (currentTrack != null) lastTrack.value = currentTrack
 
@@ -493,7 +491,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
             )
         }
 
-        // Liquid Glass Animated Launch / Splash Screen
+        // Animated Launch / Splash Screen
         AnimatedVisibility(
             visible = isSplashVisible,
             enter = fadeIn(),

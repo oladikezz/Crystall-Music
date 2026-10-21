@@ -1,6 +1,7 @@
 package com.crystall.music.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
@@ -41,14 +43,7 @@ private data class ExploreGenre(
 )
 
 /**
- * 1:1 YouTube Music Search Screen
- * Features:
- * - Pure obsidian black matte background (#030303)
- * - YouTube Music rounded pill search bar with YtSurface (#1B1B1F) container
- * - Mood and category exploration cards in 2-column grid when idle
- * - Category filter chips (All, Songs, Artists) when results are present
- * - YouTube Music Top Result hero card
- * - Signature YouTube Red accent on active indicators and progress
+ * 1:1 YouTube Music Clean Light Search Screen
  */
 @Composable
 fun SearchScreen(
@@ -97,12 +92,12 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
         // -------------------------------------------------------------
-        // 1. YouTube Music Matte Pill Search Bar
+        // 1. Clean Light Pill Search Bar
         // -------------------------------------------------------------
         Box(
             modifier = Modifier
@@ -115,7 +110,7 @@ fun SearchScreen(
                 placeholder = {
                     Text(
                         strings.searchPlaceholder,
-                        color = YtTextSecondary,
+                        color = LightTextSecondary,
                         fontSize = 15.sp
                     )
                 },
@@ -123,7 +118,7 @@ fun SearchScreen(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = YtTextSecondary,
+                        tint = LightTextSecondary,
                         modifier = Modifier.size(22.dp)
                     )
                 },
@@ -133,7 +128,7 @@ fun SearchScreen(
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Clear",
-                                tint = YtTextSecondary,
+                                tint = LightTextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -148,11 +143,11 @@ fun SearchScreen(
                     }
                 }),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = YtSurface,
-                    unfocusedContainerColor = YtSurface,
-                    focusedTextColor = YtTextPrimary,
-                    unfocusedTextColor = YtTextPrimary,
-                    cursorColor = Color.White,
+                    focusedContainerColor = LightSurfaceElevated,
+                    unfocusedContainerColor = LightSurfaceElevated,
+                    focusedTextColor = LightTextPrimary,
+                    unfocusedTextColor = LightTextPrimary,
+                    cursorColor = LightTextPrimary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
@@ -179,14 +174,14 @@ fun SearchScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(if (isSelected) Color.White else Color(0x18FFFFFF))
+                            .background(if (isSelected) LightChipSelectedBackground else LightChipBackground)
                             .clickable { selectedFilter = key }
                             .padding(horizontal = 14.dp, vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            color = if (isSelected) Color.Black else YtTextPrimary,
+                            color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
@@ -223,13 +218,13 @@ fun SearchScreen(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
-                        tint = YtTextSecondary.copy(alpha = 0.5f),
+                        tint = LightTextMuted,
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = strings.searchNothingFound,
-                        color = YtTextSecondary,
+                        color = LightTextSecondary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -246,7 +241,7 @@ fun SearchScreen(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = strings.searchPopularCategories,
-                            color = YtTextPrimary,
+                            color = LightTextPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -259,7 +254,7 @@ fun SearchScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(999.dp))
-                                        .background(Color(0x18FFFFFF))
+                                        .background(LightChipBackground)
                                         .clickable {
                                             searchQuery = tag
                                             focusManager.clearFocus()
@@ -269,7 +264,7 @@ fun SearchScreen(
                                 ) {
                                     Text(
                                         text = tag,
-                                        color = YtTextPrimary,
+                                        color = LightTextPrimary,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -284,7 +279,7 @@ fun SearchScreen(
                 item {
                     Text(
                         text = strings.searchExploreGenres,
-                        color = YtTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
@@ -306,7 +301,8 @@ fun SearchScreen(
                                     .weight(1f)
                                     .height(54.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(YtSurface)
+                                    .background(LightSurfaceElevated)
+                                    .border(0.5.dp, LightBorder, RoundedCornerShape(8.dp))
                                     .clickable {
                                         searchQuery = genre.name
                                         focusManager.clearFocus()
@@ -323,7 +319,7 @@ fun SearchScreen(
                                 )
                                 Text(
                                     text = genre.name,
-                                    color = Color.White,
+                                    color = LightTextPrimary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier
@@ -360,7 +356,7 @@ fun SearchScreen(
                         ) {
                             Text(
                                 text = strings.searchTopResult.uppercase(),
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = 0.8.sp,
@@ -371,7 +367,8 @@ fun SearchScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(YtSurface)
+                                    .background(LightSurfaceElevated)
+                                    .border(0.5.dp, LightBorder, RoundedCornerShape(12.dp))
                                     .clickable { onTrackClick(topTrack, searchResults) }
                                     .padding(12.dp)
                             ) {
@@ -384,7 +381,7 @@ fun SearchScreen(
                                         modifier = Modifier
                                             .size(56.dp)
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(Color.Black),
+                                            .background(LightSurface),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (topTrack.coverUrl.isNotBlank()) {
@@ -398,7 +395,7 @@ fun SearchScreen(
                                             Icon(
                                                 imageVector = Icons.Default.MusicNote,
                                                 contentDescription = null,
-                                                tint = YtTextSecondary,
+                                                tint = LightTextSecondary,
                                                 modifier = Modifier.size(26.dp)
                                             )
                                         }
@@ -415,7 +412,8 @@ fun SearchScreen(
                                                     barCount = 3,
                                                     barWidth = 2.dp,
                                                     maxHeight = 14.dp,
-                                                    barSpacing = 1.5.dp
+                                                    barSpacing = 1.5.dp,
+                                                    color = Color.White
                                                 )
                                             }
                                         }
@@ -426,7 +424,7 @@ fun SearchScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = topTrack.title,
-                                            color = if (currentTrack?.id == topTrack.id) YtRed else Color.White,
+                                            color = if (currentTrack?.id == topTrack.id) YtRed else LightTextPrimary,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
@@ -435,7 +433,7 @@ fun SearchScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = "${topTrack.artist} • YouTube Music",
-                                            color = YtTextSecondary,
+                                            color = LightTextSecondary,
                                             fontSize = 12.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -444,18 +442,18 @@ fun SearchScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    // Play icon
+                                    // Play icon button
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
                                             .clip(CircleShape)
-                                            .background(Color.White),
+                                            .background(LightTextPrimary),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = if (currentTrack?.id == topTrack.id && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                             contentDescription = "Play",
-                                            tint = Color.Black,
+                                            tint = Color.White,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -469,7 +467,7 @@ fun SearchScreen(
                     item {
                         Text(
                             text = strings.searchFilterSongs,
-                            color = YtTextPrimary,
+                            color = LightTextPrimary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)

@@ -30,7 +30,7 @@ import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
 /**
- * YouTube Music & SoundCloud style Import Screen with Liquid Glass aesthetics
+ * 1:1 YouTube Music Clean Light Import Screen
  */
 @Composable
 fun ImportScreen(
@@ -55,7 +55,7 @@ fun ImportScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
@@ -68,7 +68,7 @@ fun ImportScreen(
             ) {
                 Text(
                     text = strings.importTitle,
-                    color = YtTextPrimary,
+                    color = LightTextPrimary,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
@@ -76,21 +76,21 @@ fun ImportScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = strings.importSubtitle,
-                    color = YtTextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 13.sp
                 )
             }
         }
 
-        // Liquid Glass Input Box
+        // Input Card
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .border(1.dp, Color(0x28FFFFFF), RoundedCornerShape(16.dp)),
+                    .border(1.dp, LightBorder, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0x18FFFFFF))
+                colors = CardDefaults.cardColors(containerColor = LightSurface)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     TextField(
@@ -102,23 +102,23 @@ fun ImportScreen(
                         placeholder = {
                             Text(
                                 strings.importInputPlaceholder,
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 13.sp
                             )
                         },
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0x22000000),
-                            unfocusedContainerColor = Color(0x22000000),
-                            focusedTextColor = YtTextPrimary,
-                            unfocusedTextColor = YtTextPrimary,
-                            cursorColor = Color.White,
+                            focusedContainerColor = LightSurfaceElevated,
+                            unfocusedContainerColor = LightSurfaceElevated,
+                            focusedTextColor = LightTextPrimary,
+                            unfocusedTextColor = LightTextPrimary,
+                            cursorColor = LightTextPrimary,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(0.5.dp, Color(0x20FFFFFF), RoundedCornerShape(10.dp))
+                            .border(0.5.dp, LightBorder, RoundedCornerShape(10.dp))
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -136,7 +136,7 @@ fun ImportScreen(
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = YtTextPrimary)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary)
                         ) {
                             Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -153,21 +153,21 @@ fun ImportScreen(
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1.3f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black
+                                containerColor = LightTextPrimary,
+                                contentColor = Color.White
                             ),
                             enabled = !isResolving && inputUrl.isNotBlank()
                         ) {
                             if (isResolving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
-                                    color = Color.Black,
+                                    color = Color.White,
                                     strokeWidth = 2.dp
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(strings.importLoading, fontSize = 13.sp)
                             } else {
-                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(strings.importActionBtn, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             }
@@ -185,12 +185,12 @@ fun ImportScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.15f)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             text = resolveResult.message,
-                            color = Color(0xFFFF8A80),
+                            color = Color(0xFFC62828),
                             fontSize = 13.sp,
                             modifier = Modifier.padding(14.dp)
                         )
@@ -213,8 +213,8 @@ fun ImportScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0x18FFFFFF))
-                                .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(12.dp))
+                                .background(LightSurfaceElevated)
+                                .border(1.dp, LightBorder, RoundedCornerShape(12.dp))
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -222,7 +222,7 @@ fun ImportScreen(
                                 modifier = Modifier
                                     .size(64.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF141414)),
+                                    .background(LightSurface),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (!playlist.coverUrl.isNullOrBlank()) {
@@ -236,7 +236,7 @@ fun ImportScreen(
                                     Icon(
                                         imageVector = Icons.Default.LibraryMusic,
                                         contentDescription = null,
-                                        tint = YtTextSecondary,
+                                        tint = LightTextSecondary,
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
@@ -247,14 +247,14 @@ fun ImportScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = playlist.title,
-                                    color = YtTextPrimary,
+                                    color = LightTextPrimary,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = "${playlist.author} • ${tracks.size} tracks",
-                                    color = YtTextSecondary,
+                                    color = LightTextSecondary,
                                     fontSize = 13.sp
                                 )
                             }
@@ -275,8 +275,8 @@ fun ImportScreen(
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isSavedToLibrary) GreenSuccess.copy(alpha = 0.25f) else Color(0x20FFFFFF),
-                                    contentColor = if (isSavedToLibrary) GreenSuccess else YtTextPrimary
+                                    containerColor = if (isSavedToLibrary) Color(0x1F34C759) else LightSurfaceElevated,
+                                    contentColor = if (isSavedToLibrary) GreenSuccess else LightTextPrimary
                                 )
                             ) {
                                 Icon(
@@ -296,11 +296,11 @@ fun ImportScreen(
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.weight(1.3f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
+                                    containerColor = LightTextPrimary,
+                                    contentColor = Color.White
                                 )
                             ) {
-                                Icon(Icons.Default.DownloadForOffline, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.DownloadForOffline, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("${strings.importDownloadAll} (${tracks.size})", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
@@ -310,7 +310,7 @@ fun ImportScreen(
 
                         Text(
                             text = strings.importTracksInPlaylist,
-                            color = YtTextSecondary,
+                            color = LightTextSecondary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -341,7 +341,7 @@ fun ImportScreen(
                     ) {
                         Text(
                             text = strings.importFoundTrack,
-                            color = YtTextSecondary,
+                            color = LightTextSecondary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -374,13 +374,13 @@ fun ImportScreen(
                         Icon(
                             imageVector = Icons.Default.CloudDownload,
                             contentDescription = null,
-                            tint = YtTextSecondary.copy(alpha = 0.5f),
+                            tint = LightTextMuted,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = strings.importEmptyPrompt,
-                            color = YtTextSecondary,
+                            color = LightTextSecondary,
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center
                         )

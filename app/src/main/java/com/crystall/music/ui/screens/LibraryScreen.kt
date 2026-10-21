@@ -32,7 +32,7 @@ import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
 /**
- * YouTube Music & Spotify style Library Screen with Liquid Glass aesthetics
+ * 1:1 YouTube Music Clean Light Library Screen
  */
 @Composable
 fun LibraryScreen(
@@ -56,7 +56,7 @@ fun LibraryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
             .statusBarsPadding()
             .padding(bottom = 90.dp)
     ) {
@@ -69,7 +69,7 @@ fun LibraryScreen(
         ) {
             Text(
                 text = strings.libTitle,
-                color = YtTextPrimary,
+                color = LightTextPrimary,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp
@@ -92,20 +92,15 @@ fun LibraryScreen(
                 val isSelected = selectedTab == index
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) Color.White else Color(0x18FFFFFF))
-                        .border(
-                            1.dp,
-                            if (isSelected) Color.Transparent else Color(0x24FFFFFF),
-                            RoundedCornerShape(12.dp)
-                        )
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (isSelected) LightChipSelectedBackground else LightChipBackground)
                         .clickable { selectedTab = index }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = tabs[index],
-                        color = if (isSelected) Color.Black else YtTextPrimary,
+                        color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
@@ -123,13 +118,13 @@ fun LibraryScreen(
             Icon(
                 imageVector = Icons.Default.SwapVert,
                 contentDescription = "Sort",
-                tint = YtTextSecondary,
+                tint = LightTextSecondary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = strings.libRecentActivity,
-                color = YtTextSecondary,
+                color = LightTextSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -150,20 +145,20 @@ fun LibraryScreen(
                             Icon(
                                 imageVector = Icons.Default.FileDownloadOff,
                                 contentDescription = null,
-                                tint = YtTextSecondary.copy(alpha = 0.5f),
+                                tint = LightTextMuted,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = strings.libNoDownloadsTitle,
-                                color = YtTextPrimary,
+                                color = LightTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = strings.libNoDownloadsSub,
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
                             )
@@ -190,8 +185,8 @@ fun LibraryScreen(
                                     onClick = { onTrackClick(downloadedTracks.first(), downloadedTracks) },
                                     shape = RoundedCornerShape(18.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0x22FFFFFF),
-                                        contentColor = YtTextPrimary
+                                        containerColor = LightSurfaceElevated,
+                                        contentColor = LightTextPrimary
                                     ),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                                 ) {
@@ -199,7 +194,7 @@ fun LibraryScreen(
                                         Icons.Default.PlayArrow,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp),
-                                        tint = Color.White
+                                        tint = LightTextPrimary
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(strings.libShuffleAll, fontSize = 13.sp, fontWeight = FontWeight.Medium)
@@ -237,20 +232,20 @@ fun LibraryScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                                 contentDescription = null,
-                                tint = YtTextSecondary.copy(alpha = 0.5f),
+                                tint = LightTextMuted,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = strings.libNoPlaylistsTitle,
-                                color = YtTextPrimary,
+                                color = LightTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = strings.libNoPlaylistsSub,
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
                             )
@@ -270,7 +265,7 @@ fun LibraryScreen(
                                     modifier = Modifier
                                         .size(56.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(YtSurface),
+                                        .background(LightSurfaceElevated),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!playlist.coverUrl.isNullOrBlank()) {
@@ -284,7 +279,7 @@ fun LibraryScreen(
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                                             contentDescription = null,
-                                            tint = YtTextSecondary,
+                                            tint = LightTextSecondary,
                                             modifier = Modifier.size(28.dp)
                                         )
                                     }
@@ -295,14 +290,14 @@ fun LibraryScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = playlist.title,
-                                        color = YtTextPrimary,
+                                        color = LightTextPrimary,
                                         fontSize = 15.sp,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = String.format(strings.libPlaylistTracksCount, playlist.trackCount),
-                                        color = YtTextSecondary,
+                                        color = LightTextSecondary,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -311,7 +306,7 @@ fun LibraryScreen(
                                     Icon(
                                         imageVector = Icons.Default.DeleteOutline,
                                         contentDescription = "Delete",
-                                        tint = YtTextSecondary,
+                                        tint = LightTextSecondary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -334,20 +329,20 @@ fun LibraryScreen(
                             Icon(
                                 imageVector = Icons.Default.ThumbUpOffAlt,
                                 contentDescription = null,
-                                tint = YtTextSecondary.copy(alpha = 0.5f),
+                                tint = LightTextMuted,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = strings.libNoFavoritesTitle,
-                                color = YtTextPrimary,
+                                color = LightTextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = strings.libNoFavoritesSub,
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
                             )

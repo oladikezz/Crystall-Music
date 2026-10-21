@@ -24,7 +24,7 @@ import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.theme.*
 
 /**
- * 1:1 YouTube Music Track Row
+ * 1:1 YouTube Music Clean Light Track Row
  */
 @Composable
 fun TrackItem(
@@ -43,17 +43,17 @@ fun TrackItem(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isCurrentTrack) Color(0x1AFFFFFF) else Color.Transparent)
+            .background(if (isCurrentTrack) LightSurfaceElevated else Color.Transparent)
             .clickable { onTrackClick() }
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // YouTube Music 48x48dp square artwork
+        // 48x48dp square artwork
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(YtSurface),
+                .clip(RoundedCornerShape(6.dp))
+                .background(LightSurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (track.coverUrl.isNotBlank()) {
@@ -67,7 +67,7 @@ fun TrackItem(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = YtTextSecondary,
+                    tint = LightTextSecondary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -76,7 +76,7 @@ fun TrackItem(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f)),
+                        .background(Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isPlaying) {
@@ -85,7 +85,8 @@ fun TrackItem(
                             barCount = 3,
                             barWidth = 2.5.dp,
                             maxHeight = 16.dp,
-                            barSpacing = 1.5.dp
+                            barSpacing = 1.5.dp,
+                            color = Color.White
                         )
                     } else {
                         Icon(
@@ -107,7 +108,7 @@ fun TrackItem(
         ) {
             Text(
                 text = track.title,
-                color = if (isCurrentTrack) YtRed else YtTextPrimary,
+                color = if (isCurrentTrack) YtRed else LightTextPrimary,
                 fontSize = 15.sp,
                 fontWeight = if (isCurrentTrack) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1,
@@ -119,7 +120,7 @@ fun TrackItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = track.artist,
-                    color = YtTextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -129,7 +130,7 @@ fun TrackItem(
                 if (track.durationMs > 0) {
                     Text(
                         text = " • ${track.durationFormatted}",
-                        color = YtTextSecondary.copy(alpha = 0.7f),
+                        color = LightTextMuted,
                         fontSize = 12.sp
                     )
                 }
@@ -147,7 +148,7 @@ fun TrackItem(
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
                     contentDescription = "Favorite",
-                    tint = if (isFavorite) Color.White else YtTextSecondary,
+                    tint = if (isFavorite) LightTextPrimary else LightTextSecondary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -165,7 +166,7 @@ fun TrackItem(
                 CircularProgressIndicator(
                     progress = { (downloadProgress?.progressPercent ?: 0) / 100f },
                     modifier = Modifier.size(20.dp),
-                    color = Color.White,
+                    color = YtRed,
                     strokeWidth = 2.dp
                 )
             }
@@ -189,7 +190,7 @@ fun TrackItem(
                 Icon(
                     imageVector = Icons.Outlined.Download,
                     contentDescription = "Download",
-                    tint = YtTextSecondary,
+                    tint = LightTextSecondary,
                     modifier = Modifier.size(18.dp)
                 )
             }

@@ -19,19 +19,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crystall.music.ui.i18n.LocalAppLanguage
 import com.crystall.music.ui.i18n.LocalStrings
-import com.crystall.music.ui.theme.GreenSuccess
-import com.crystall.music.ui.theme.TextPrimary
-import com.crystall.music.ui.theme.TextSecondary
-import com.crystall.music.ui.theme.YtRed
-import com.crystall.music.ui.theme.YtSurfaceElevated
+import com.crystall.music.ui.theme.*
 
+/**
+ * YouTube Music Clean Light Options Sheet
+ */
 @Composable
 fun PlayerOptionsSheet(
     sleepTimerRemainingMs: Long?,
@@ -54,7 +52,7 @@ fun PlayerOptionsSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.7f))
+            .background(Color.Black.copy(alpha = 0.45f))
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -63,15 +61,15 @@ fun PlayerOptionsSheet(
                 .fillMaxWidth()
                 .clickable(enabled = false) {}
                 .shadow(
-                    elevation = 32.dp,
+                    elevation = 24.dp,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    spotColor = Color.Black.copy(alpha = 0.85f)
+                    spotColor = Color(0x30000000)
                 )
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(YtSurfaceElevated)
+                .background(LightSurface)
                 .border(
                     width = 1.dp,
-                    color = Color(0x22FFFFFF),
+                    color = LightBorder,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                 )
         ) {
@@ -88,7 +86,7 @@ fun PlayerOptionsSheet(
                         .width(40.dp)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(Color(0x4DFFFFFF))
+                        .background(Color(0xFFD1D5DB))
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -101,7 +99,7 @@ fun PlayerOptionsSheet(
                 ) {
                     Text(
                         text = strings.optionsTitle,
-                        color = Color.White,
+                        color = LightTextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -113,7 +111,7 @@ fun PlayerOptionsSheet(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.7f),
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -128,8 +126,8 @@ fun PlayerOptionsSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x18FFFFFF))
-                        .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(16.dp))
+                        .background(LightSurfaceElevated)
+                        .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                         .clickable { onOpenLanguagePicker() }
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
@@ -145,13 +143,13 @@ fun PlayerOptionsSheet(
                             Icon(
                                 imageVector = Icons.Default.Language,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(22.dp)
                             )
                             Column {
                                 Text(
                                     text = strings.optionsLanguageTitle,
-                                    color = Color.White,
+                                    color = LightTextPrimary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -167,7 +165,7 @@ fun PlayerOptionsSheet(
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
-                            tint = TextSecondary,
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -176,14 +174,14 @@ fun PlayerOptionsSheet(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // ---------------------------------------------------------
-                // SECTION 1: Экономия интернет-трафика (Эконом / Норм)
+                // SECTION 1: Data Saver Mode
                 // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x14FFFFFF))
-                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                        .background(LightSurfaceElevated)
+                        .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
                     Row(
@@ -193,12 +191,12 @@ fun PlayerOptionsSheet(
                         Icon(
                             imageVector = Icons.Default.DataSaverOn,
                             contentDescription = null,
-                            tint = if (isEconomyMode) GreenSuccess else Color.White,
+                            tint = if (isEconomyMode) GreenSuccess else LightTextPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = strings.optionsDataSaverTitle,
-                            color = Color.White,
+                            color = LightTextPrimary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -210,17 +208,17 @@ fun PlayerOptionsSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Эконом режим Card
+                        // Economy Mode Card
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
-                                    if (isEconomyMode) GreenSuccess.copy(alpha = 0.18f) else Color(0x10FFFFFF)
+                                    if (isEconomyMode) Color(0x1F34C759) else LightSurface
                                 )
                                 .border(
                                     width = if (isEconomyMode) 1.5.dp else 0.5.dp,
-                                    color = if (isEconomyMode) GreenSuccess else Color(0x25FFFFFF),
+                                    color = if (isEconomyMode) GreenSuccess else LightBorder,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable {
@@ -235,7 +233,7 @@ fun PlayerOptionsSheet(
                                 ) {
                                     Text(
                                         text = strings.optionsEcoName,
-                                        color = if (isEconomyMode) GreenSuccess else Color.White,
+                                        color = if (isEconomyMode) GreenSuccess else LightTextPrimary,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -251,30 +249,30 @@ fun PlayerOptionsSheet(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = strings.optionsEcoSize,
-                                    color = if (isEconomyMode) Color.White else Color(0x99FFFFFF),
+                                    color = LightTextPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = strings.optionsEcoSub,
-                                    color = Color(0x88FFFFFF),
+                                    color = LightTextSecondary,
                                     fontSize = 10.sp,
                                     lineHeight = 13.sp
                                 )
                             }
                         }
 
-                        // Норм режим Card
+                        // HQ Mode Card
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
-                                    if (!isEconomyMode) Color(0x28FFFFFF) else Color(0x10FFFFFF)
+                                    if (!isEconomyMode) Color(0x120F0F12) else LightSurface
                                 )
                                 .border(
                                     width = if (!isEconomyMode) 1.5.dp else 0.5.dp,
-                                    color = if (!isEconomyMode) Color.White else Color(0x25FFFFFF),
+                                    color = if (!isEconomyMode) LightTextPrimary else LightBorder,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable {
@@ -289,7 +287,7 @@ fun PlayerOptionsSheet(
                                 ) {
                                     Text(
                                         text = strings.optionsNormName,
-                                        color = Color.White,
+                                        color = LightTextPrimary,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -297,7 +295,7 @@ fun PlayerOptionsSheet(
                                         Icon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = LightTextPrimary,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -305,13 +303,13 @@ fun PlayerOptionsSheet(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = strings.optionsNormSize,
-                                    color = if (!isEconomyMode) Color.White else Color(0x99FFFFFF),
+                                    color = LightTextPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = strings.optionsNormSub,
-                                    color = Color(0x88FFFFFF),
+                                    color = LightTextSecondary,
                                     fontSize = 10.sp,
                                     lineHeight = 13.sp
                                 )
@@ -323,14 +321,14 @@ fun PlayerOptionsSheet(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // ---------------------------------------------------------
-                // SECTION 2: Таймер сна (Sleep Timer)
+                // SECTION 2: Sleep Timer
                 // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x14FFFFFF))
-                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                        .background(LightSurfaceElevated)
+                        .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
                     Row(
@@ -345,12 +343,12 @@ fun PlayerOptionsSheet(
                             Icon(
                                 imageVector = Icons.Outlined.Bedtime,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 text = strings.optionsSleepTimerTitle,
-                                color = TextPrimary,
+                                color = LightTextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -380,7 +378,7 @@ fun PlayerOptionsSheet(
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = strings.optionsSleepTimerReset,
-                                        tint = Color.White.copy(alpha = 0.7f),
+                                        tint = LightTextSecondary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -407,15 +405,15 @@ fun PlayerOptionsSheet(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0x18FFFFFF))
-                                    .border(0.5.dp, Color(0x30FFFFFF), RoundedCornerShape(12.dp))
+                                    .background(LightChipBackground)
+                                    .border(0.5.dp, LightBorder, RoundedCornerShape(12.dp))
                                     .clickable { onSetSleepTimer(minutes) }
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = label,
-                                    color = Color.White,
+                                    color = LightTextPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -430,16 +428,16 @@ fun PlayerOptionsSheet(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (isSleepTimerEndOfTrack) Color(0x38FFFFFF) else Color(0x12FFFFFF)
+                                if (isSleepTimerEndOfTrack) LightChipSelectedBackground else LightChipBackground
                             )
-                            .border(0.5.dp, Color(0x28FFFFFF), RoundedCornerShape(12.dp))
+                            .border(0.5.dp, LightBorder, RoundedCornerShape(12.dp))
                             .clickable { onSetSleepTimerEndOfTrack() }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = strings.optionsSleepTimerEndTrack,
-                            color = if (isSleepTimerEndOfTrack) Color.White else Color(0xCCFFFFFF),
+                            color = if (isSleepTimerEndOfTrack) LightChipSelectedText else LightTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = if (isSleepTimerEndOfTrack) FontWeight.Bold else FontWeight.Normal
                         )
@@ -449,14 +447,14 @@ fun PlayerOptionsSheet(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // ---------------------------------------------------------
-                // SECTION 3: Скорость воспроизведения (0.8x - 1.5x)
+                // SECTION 3: Playback Speed
                 // ---------------------------------------------------------
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x14FFFFFF))
-                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                        .background(LightSurfaceElevated)
+                        .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
                     Row(
@@ -471,12 +469,12 @@ fun PlayerOptionsSheet(
                             Icon(
                                 imageVector = Icons.Default.Speed,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 text = strings.optionsSpeedTitle,
-                                color = TextPrimary,
+                                color = LightTextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -484,7 +482,7 @@ fun PlayerOptionsSheet(
 
                         Text(
                             text = "${playbackSpeed}x",
-                            color = Color.White,
+                            color = LightTextPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -504,11 +502,11 @@ fun PlayerOptionsSheet(
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                        if (isSelected) Color(0x38FFFFFF) else Color(0x18FFFFFF)
+                                        if (isSelected) LightChipSelectedBackground else LightChipBackground
                                     )
                                     .border(
                                         width = if (isSelected) 1.dp else 0.5.dp,
-                                        color = if (isSelected) Color.White else Color(0x30FFFFFF),
+                                        color = if (isSelected) LightChipSelectedBackground else LightBorder,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     .clickable { onSetPlaybackSpeed(spd) }
@@ -517,7 +515,7 @@ fun PlayerOptionsSheet(
                             ) {
                                 Text(
                                     text = if (spd == 1.0f) "1.0x" else "${spd}x",
-                                    color = if (isSelected) Color.White else Color(0xCCFFFFFF),
+                                    color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )

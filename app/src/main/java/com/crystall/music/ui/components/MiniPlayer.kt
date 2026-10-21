@@ -28,12 +28,12 @@ import com.crystall.music.data.model.Track
 import com.crystall.music.ui.theme.*
 
 /**
- * 1:1 YouTube Music MiniPlayer
+ * 1:1 YouTube Music Clean Light MiniPlayer
  * Features:
+ * - Pure White (#FFFFFF) elevated container with soft shadow
  * - Signature YouTube Music Red (#FF0000) progress scrubber at the top
- * - Authentic YtSurface (#212121) matte dark finish
- * - Compact 44x44dp square album cover with subtle rounded corners (6dp)
- * - YouTube Music title/artist typography with basicMarquee
+ * - Compact 44x44dp square album cover with rounded corners (6dp)
+ * - Crisp dark typography for title and artist
  * - Thumbs up, Play/Pause, and Skip Next transport controls
  * - Horizontal swipe gesture to skip tracks
  */
@@ -66,13 +66,29 @@ fun MiniPlayer(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .shadow(
-                elevation = 16.dp,
+                elevation = 10.dp,
                 shape = RoundedCornerShape(12.dp),
-                spotColor = Color.Black.copy(alpha = 0.8f)
+                spotColor = Color(0x24000000),
+                ambientColor = Color(0x14000000)
             )
             .clip(RoundedCornerShape(12.dp))
-            .background(YtSurface)
-            .border(0.5.dp, Color(0x28FFFFFF), RoundedCornerShape(12.dp))
+            .background(LightSurface)
+            .border(0.5.dp, LightBorder, RoundedCornerShape(12.dp))
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (dragOffset > 70f) {
+                            onNextClick()
+                        } else if (dragOffset < -70f) {
+                            onNextClick()
+                        }
+                        dragOffset = 0f
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        dragOffset += dragAmount
+                    }
+                )
+            }
             .clickable { onPlayerClick() }
     ) {
         // YouTube Music Signature Top Red Progress Bar
@@ -80,7 +96,7 @@ fun MiniPlayer(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(2.dp)
-                .background(Color(0x33FFFFFF))
+                .background(Color(0xFFE5E7EB))
         ) {
             Box(
                 modifier = Modifier
@@ -96,12 +112,12 @@ fun MiniPlayer(
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Square Artwork (YouTube Music 1:1)
+            // Square Artwork
             Box(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF141414)),
+                    .background(LightSurfaceElevated),
                 contentAlignment = Alignment.Center
             ) {
                 if (track.coverUrl.isNotBlank()) {
@@ -115,7 +131,7 @@ fun MiniPlayer(
                     Icon(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
-                        tint = YtTextSecondary,
+                        tint = LightTextSecondary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -133,9 +149,9 @@ fun MiniPlayer(
                 ) {
                     Text(
                         text = track.title,
-                        color = YtTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -146,21 +162,22 @@ fun MiniPlayer(
                             barCount = 3,
                             barWidth = 2.dp,
                             maxHeight = 11.dp,
-                            barSpacing = 1.dp
+                            barSpacing = 1.dp,
+                            color = YtRed
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = track.artist,
-                    color = YtTextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Thumbs Up / Like Button (YouTube Music 1:1)
+            // Thumbs Up / Like Button
             IconButton(
                 onClick = onFavoriteClick,
                 modifier = Modifier.size(36.dp)
@@ -168,12 +185,12 @@ fun MiniPlayer(
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
                     contentDescription = "Like",
-                    tint = if (isFavorite) Color.White else YtTextSecondary,
+                    tint = if (isFavorite) YtRed else LightTextSecondary,
                     modifier = Modifier.size(20.dp)
                 )
             }
 
-            // Play / Pause Button (YouTube Music 1:1)
+            // Play / Pause Button
             IconButton(
                 onClick = onPlayPauseClick,
                 modifier = Modifier.size(40.dp)
@@ -181,20 +198,20 @@ fun MiniPlayer(
                 if (isBuffering) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        color = Color.White,
+                        color = YtRed,
                         strokeWidth = 2.dp
                     )
                 } else {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = YtTextPrimary,
+                        tint = LightTextPrimary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
             }
 
-            // Next Button (YouTube Music 1:1)
+            // Next Button
             IconButton(
                 onClick = onNextClick,
                 modifier = Modifier.size(38.dp)
@@ -202,7 +219,7 @@ fun MiniPlayer(
                 Icon(
                     imageVector = Icons.Filled.SkipNext,
                     contentDescription = "Next",
-                    tint = YtTextPrimary,
+                    tint = LightTextPrimary,
                     modifier = Modifier.size(26.dp)
                 )
             }

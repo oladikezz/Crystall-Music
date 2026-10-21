@@ -2,62 +2,83 @@ package com.crystall.music.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BackgroundDark = Color(0xFF070709)
-val SurfaceDark = Color(0xFF111115)
-val SurfaceElevated = Color(0xFF17181E)
-val SurfaceBorder = Color(0x26FFFFFF)
+// ==========================================
+// PURE WHITE & LIGHT CLEAN THEME PALETTE
+// ==========================================
 
-// Pure Glass Translucency
-val GlassPrimary = Color(0xFFFFFFFF)
-val GlassSecondary = Color(0xCCFFFFFF)
-val GlassSurface = Color(0x16FFFFFF)
-val GlassSurfaceElevated = Color(0x28FFFFFF)
-val GlassSurfacePressed = Color(0x3DFFFFFF)
-val GlassBorder = Color(0x2EFFFFFF)
-val GlassBorderSubtle = Color(0x14FFFFFF)
+// Base Backgrounds & Surfaces
+val LightBackground = Color(0xFFFFFFFF)        // Pure White screen background
+val LightSurface = Color(0xFFFFFFFF)           // Pure White card / sheet surface
+val LightSurfaceElevated = Color(0xFFF7F7F9)   // Subtle light grey for secondary cards / chips / inputs
+val LightSurfacePressed = Color(0xFFEBECEF)    // Ripple / pressed state
+val LightBorder = Color(0xFFE5E7EB)            // Crisp hairline border (0.5dp or 1dp)
+val LightBorderSubtle = Color(0xFFF0F1F3)
 
-// iOS 27 Liquid Glass & Dynamic Island Palette
-val IosBackground = Color(0xFF070709)
-val IosGlassSurface = Color(0x18FFFFFF)
-val IosGlassSurfaceElevated = Color(0x2CFFFFFF)
-val IosGlassBorder = Color(0x2EFFFFFF)
-val IosGlassBorderSubtle = Color(0x14FFFFFF)
-val IosDynamicIsland = Color(0xF0121216)
-val IosAccentWhite = Color(0xFFFFFFFF)
-val IosTextSecondary = Color(0x99EBEBF5)
-val IosTextTertiary = Color(0x4DEBEBF5)
-val IosPillBackground = Color(0x2EFFFFFF)
-val IosPillGradient = listOf(Color(0xFFFFFFFF), Color(0xB3FFFFFF))
+// Text Colors (High Contrast & Crisp)
+val LightTextPrimary = Color(0xFF0F0F12)       // Ultra deep charcoal / black for headlines and titles
+val LightTextSecondary = Color(0xFF5F6368)     // Neutral dark grey for artist names, descriptions
+val LightTextMuted = Color(0xFF9AA0A6)         // Subtle grey for timestamps, badges, placeholders
 
-// Clean Monochrome & System Colors
-val TextPrimary = Color(0xFFFFFFFF)
-val TextSecondary = Color(0x99EBEBF5)
-val TextMuted = Color(0x52EBEBF5)
-val GreenSuccess = Color(0xFF30D158) // Apple iOS system green
+// Chips & Controls
+val LightChipBackground = Color(0xFFF1F3F4)    // Unselected chip light grey
+val LightChipBorder = Color(0xFFE5E7EB)        // Subtle hairline
+val LightChipSelectedBackground = Color(0xFF0F0F12) // Deep black pill when active
+val LightChipSelectedText = Color(0xFFFFFFFF)       // Pure white text inside active pill
 
-// Aliases redirected to clean pure glass white (no neon colors)
-val CrystalPrimary = Color(0xFFFFFFFF)
-val CrystalViolet = Color(0xB3FFFFFF)
-val CrystalCyan = Color(0xFFFFFFFF)
-val CrystalGradient = listOf(Color(0xFFFFFFFF), Color(0xCCE0E0E0))
-val IosAccentCyan = Color(0xFFFFFFFF)
-val IosAccentPurple = Color(0xCCFFFFFF)
-val IosAccentPink = Color(0xFFFFFFFF)
-val IosAccentBlue = Color(0xFFFFFFFF)
-val SoundCloudOrange = Color(0xB3FFFFFF)
-val YouTubeRed = Color(0xFFFF0000)
-
-// YouTube Music 1:1 Palette
-val YtBackground = Color(0xFF030303)
-val YtSurface = Color(0xFF1B1B1F)
-val YtSurfaceElevated = Color(0xFF24242A)
-val YtSurfaceBorder = Color(0x1FFFFFFF)
-val YtRed = Color(0xFFFF0000)
+// Brand & Accents
+val YtRed = Color(0xFFFF0000)                  // YouTube signature red (scrubber, active playing track, badge)
 val YtRedAccent = Color(0xFFFF0033)
-val YtChipBackground = Color(0x1AFFFFFF)
-val YtChipBorder = Color(0x2EFFFFFF)
-val YtChipSelectedBackground = Color(0xFFFFFFFF)
-val YtChipSelectedText = Color(0xFF0A0A0A)
-val YtTextPrimary = Color(0xFFFFFFFF)
-val YtTextSecondary = Color(0xFFAAAAAA)
-val YtTextMuted = Color(0xFF717171)
+val GreenSuccess = Color(0xFF34C759)           // Download completed / success indicator
+
+// Aliases mapped directly to Pure White Palette
+val YtBackground = LightBackground
+val YtSurface = LightSurface
+val YtSurfaceElevated = LightSurfaceElevated
+val YtSurfaceBorder = LightBorder
+val YtChipBackground = LightChipBackground
+val YtChipBorder = LightChipBorder
+val YtChipSelectedBackground = LightChipSelectedBackground
+val YtChipSelectedText = LightChipSelectedText
+val YtTextPrimary = LightTextPrimary
+val YtTextSecondary = LightTextSecondary
+val YtTextMuted = LightTextMuted
+
+// Legacy aliases redirected to light tokens
+val BackgroundDark = LightBackground
+val SurfaceDark = LightSurface
+val SurfaceElevated = LightSurfaceElevated
+val SurfaceBorder = LightBorder
+val TextPrimary = LightTextPrimary
+val TextSecondary = LightTextSecondary
+val TextMuted = LightTextMuted
+val CrystalPrimary = LightTextPrimary
+val CrystalCyan = YtRed
+val SoundCloudOrange = Color(0xFFFF5500)
+val YouTubeRed = YtRed
+
+// Pure Glass Translucency for Light Mode
+val GlassPrimary = LightTextPrimary
+val GlassSecondary = LightTextSecondary
+val GlassSurface = Color(0x0D000000)
+val GlassSurfaceElevated = Color(0x14000000)
+val GlassSurfacePressed = Color(0x1F000000)
+val GlassBorder = Color(0x1A000000)
+val GlassBorderSubtle = Color(0x0F000000)
+
+val IosBackground = LightBackground
+val IosGlassSurface = Color(0x0A000000)
+val IosGlassSurfaceElevated = Color(0x14000000)
+val IosGlassBorder = Color(0x1A000000)
+val IosGlassBorderSubtle = Color(0x0F000000)
+val IosDynamicIsland = Color(0xFFFFFFFF)
+val IosAccentWhite = Color(0xFF0F0F12)
+val IosTextSecondary = LightTextSecondary
+val IosTextTertiary = LightTextMuted
+val IosPillBackground = Color(0xFFF1F3F4)
+val IosPillGradient = listOf(Color(0xFF0F0F12), Color(0xFF2A2A2E))
+val CrystalViolet = Color(0xFF7B1FA2)
+val CrystalGradient = listOf(Color(0xFF0F0F12), Color(0xFF3A3A3C))
+val IosAccentCyan = Color(0xFF007AFF)
+val IosAccentPurple = Color(0xFF7B1FA2)
+val IosAccentPink = Color(0xFFFF2D55)
+val IosAccentBlue = Color(0xFF007AFF)

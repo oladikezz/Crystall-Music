@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -33,8 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crystall.music.ui.i18n.LocalStrings
-import com.crystall.music.ui.theme.TextPrimary
-import com.crystall.music.ui.theme.TextSecondary
+import com.crystall.music.ui.theme.*
 
 private val DEFAULT_TOP_ARTISTS = listOf(
     "Miyagi & Эндшпиль",
@@ -61,6 +59,9 @@ private val DEFAULT_TOP_ARTISTS = listOf(
     "Король и Шут"
 )
 
+/**
+ * YouTube Music Clean Light Taste Picker Sheet
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TastePickerSheet(
@@ -88,7 +89,7 @@ fun TastePickerSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.65f))
+            .background(Color.Black.copy(alpha = 0.45f))
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -98,25 +99,15 @@ fun TastePickerSheet(
                 .fillMaxHeight(0.85f)
                 .clickable(enabled = false) {}
                 .shadow(
-                    elevation = 32.dp,
+                    elevation = 24.dp,
                     shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                    spotColor = Color.Black.copy(alpha = 0.8f)
+                    spotColor = Color(0x30000000)
                 )
                 .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color(0xF01A1B29),
-                            Color(0xF811121C),
-                            Color(0xFF090A10)
-                        )
-                    )
-                )
+                .background(LightSurface)
                 .border(
                     width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(Color(0x4DFFFFFF), Color(0x10FFFFFF))
-                    ),
+                    color = LightBorder,
                     shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
                 )
         ) {
@@ -129,13 +120,13 @@ fun TastePickerSheet(
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Dynamic Island Drag Handle
+                // Drag Handle
                 Box(
                     modifier = Modifier
                         .width(42.dp)
                         .height(5.dp)
                         .clip(CircleShape)
-                        .background(Color(0x4DFFFFFF))
+                        .background(Color(0xFFD1D5DB))
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -154,19 +145,19 @@ fun TastePickerSheet(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0x22FFFFFF)),
+                                .background(LightSurfaceElevated),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Text(
                             text = strings.tasteTitle,
-                            color = TextPrimary,
+                            color = LightTextPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -179,7 +170,7 @@ fun TastePickerSheet(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.7f),
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -189,20 +180,20 @@ fun TastePickerSheet(
 
                 Text(
                     text = strings.tasteSubtitle,
-                    color = TextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Custom Artist Input (Liquid Glass Capsule)
+                // Custom Artist Input
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x18FFFFFF))
-                        .border(1.dp, Color(0x28FFFFFF), RoundedCornerShape(16.dp))
+                        .background(LightSurfaceElevated)
+                        .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                         .padding(horizontal = 14.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -212,7 +203,7 @@ fun TastePickerSheet(
                         placeholder = {
                             Text(
                                 text = "Добавить своего исполнителя...",
-                                color = TextSecondary.copy(alpha = 0.6f),
+                                color = LightTextMuted,
                                 fontSize = 13.sp
                             )
                         },
@@ -221,8 +212,9 @@ fun TastePickerSheet(
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            focusedTextColor = LightTextPrimary,
+                            unfocusedTextColor = LightTextPrimary,
+                            cursorColor = LightTextPrimary
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -256,7 +248,7 @@ fun TastePickerSheet(
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add",
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -279,22 +271,16 @@ fun TastePickerSheet(
                         ) {
                             allArtists.forEach { artist ->
                                 val isSelected = selectedArtists.contains(artist)
-                                val bgColor by animateColorAsState(
-                                    targetValue = if (isSelected) Color(0x38FFFFFF) else Color(0x12FFFFFF),
-                                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                                    label = "chip_bg"
-                                )
-                                val borderColor by animateColorAsState(
-                                    targetValue = if (isSelected) Color.White else Color(0x22FFFFFF),
-                                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                                    label = "chip_border"
-                                )
 
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(bgColor)
-                                        .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(if (isSelected) LightChipSelectedBackground else LightChipBackground)
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = if (isSelected) LightChipSelectedBackground else LightBorder,
+                                            shape = RoundedCornerShape(999.dp)
+                                        )
                                         .clickable {
                                             if (isSelected) {
                                                 selectedArtists.remove(artist)
@@ -318,9 +304,9 @@ fun TastePickerSheet(
                                         }
                                         Text(
                                             text = artist,
-                                            color = if (isSelected) Color.White else Color(0xD8FFFFFF),
+                                            color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                                             fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         )
                                     }
                                 }
@@ -344,14 +330,14 @@ fun TastePickerSheet(
                             .weight(1f)
                             .height(48.dp)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(Color(0x16FFFFFF))
-                            .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(24.dp))
+                            .background(LightSurfaceElevated)
+                            .border(1.dp, LightBorder, RoundedCornerShape(24.dp))
                             .clickable { onSkip() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = strings.tasteSkipBtn,
-                            color = Color(0xB3FFFFFF),
+                            color = LightTextSecondary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -362,9 +348,8 @@ fun TastePickerSheet(
                         modifier = Modifier
                             .weight(1.4f)
                             .height(48.dp)
-                            .shadow(16.dp, RoundedCornerShape(24.dp), spotColor = Color.White.copy(alpha = 0.25f))
                             .clip(RoundedCornerShape(24.dp))
-                            .background(Color.White)
+                            .background(LightTextPrimary)
                             .clickable {
                                 onSave(selectedArtists.toList())
                             },
@@ -372,7 +357,7 @@ fun TastePickerSheet(
                     ) {
                         Text(
                             text = if (selectedArtists.isEmpty()) strings.tasteSaveBtn else "${strings.tasteSaveBtn} (${selectedArtists.size})",
-                            color = Color(0xFF101014),
+                            color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )

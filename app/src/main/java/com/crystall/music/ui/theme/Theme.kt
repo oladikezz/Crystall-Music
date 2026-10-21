@@ -1,41 +1,43 @@
-﻿package com.crystall.music.ui.theme
+package com.crystall.music.ui.theme
 
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = CrystalPrimary,
-    secondary = CrystalCyan,
-    tertiary = SoundCloudOrange,
-    background = BackgroundDark,
-    surface = SurfaceDark,
-    surfaceVariant = SurfaceElevated,
-    onPrimary = TextPrimary,
-    onSecondary = BackgroundDark,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    outline = SurfaceBorder
+private val LightColorScheme = lightColorScheme(
+    primary = LightTextPrimary,
+    secondary = YtRed,
+    tertiary = YtRed,
+    background = LightBackground,
+    surface = LightSurface,
+    surfaceVariant = LightSurfaceElevated,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = LightTextPrimary,
+    onSurface = LightTextPrimary,
+    outline = LightBorder
 )
 
 @Composable
 fun CrystallMusicTheme(
     content: @Composable () -> Unit
 ) {
-    val colorScheme = DarkColorScheme
+    val colorScheme = LightColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = BackgroundDark.toArgb()
-            window.navigationBarColor = BackgroundDark.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
+            window.statusBarColor = LightBackground.toArgb()
+            window.navigationBarColor = LightBackground.toArgb()
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = true
+            controller.isAppearanceLightNavigationBars = true
         }
     }
 

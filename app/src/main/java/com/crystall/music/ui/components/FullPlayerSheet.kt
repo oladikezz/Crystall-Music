@@ -45,6 +45,9 @@ enum class PlayerBottomTab {
     UP_NEXT, LYRICS, RELATED
 }
 
+/**
+ * 1:1 YouTube Music Clean Light Full Screen Player
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullPlayerSheet(
@@ -93,7 +96,7 @@ fun FullPlayerSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
     ) {
         Column(
             modifier = Modifier
@@ -103,7 +106,7 @@ fun FullPlayerSheet(
                 .padding(horizontal = 20.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. YouTube Music Top Bar
+            // 1. Top Bar: Down Arrow, Song/Video Toggle, Options Menu
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -116,17 +119,17 @@ fun FullPlayerSheet(
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = "Collapse",
-                        tint = YtTextPrimary,
+                        tint = LightTextPrimary,
                         modifier = Modifier.size(30.dp)
                     )
                 }
 
-                // Center: Song | Video Toggle Pill (YouTube Music signature)
+                // Center: Song | Video Toggle Pill
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(YtSurface)
-                        .border(1.dp, YtSurfaceBorder, RoundedCornerShape(20.dp))
+                        .background(LightSurfaceElevated)
+                        .border(1.dp, LightBorder, RoundedCornerShape(20.dp))
                         .padding(2.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,16 +137,17 @@ fun FullPlayerSheet(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(if (!isVideoMode) Color(0x33FFFFFF) else Color.Transparent)
+                                .background(if (!isVideoMode) Color.White else Color.Transparent)
+                                .shadow(if (!isVideoMode) 2.dp else 0.dp, RoundedCornerShape(18.dp))
                                 .clickable { isVideoMode = false }
                                 .padding(horizontal = 14.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = strings.playerSongMode,
-                                color = if (!isVideoMode) Color.White else YtTextSecondary,
+                                color = if (!isVideoMode) LightTextPrimary else LightTextSecondary,
                                 fontSize = 12.sp,
-                                fontWeight = if (!isVideoMode) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (!isVideoMode) FontWeight.Bold else FontWeight.Medium
                             )
                         }
 
@@ -151,37 +155,36 @@ fun FullPlayerSheet(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(if (isVideoMode) Color(0x33FFFFFF) else Color.Transparent)
+                                .background(if (isVideoMode) Color.White else Color.Transparent)
+                                .shadow(if (isVideoMode) 2.dp else 0.dp, RoundedCornerShape(18.dp))
                                 .clickable { isVideoMode = true }
                                 .padding(horizontal = 14.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = strings.playerVideoMode,
-                                color = if (isVideoMode) Color.White else YtTextSecondary,
+                                color = if (isVideoMode) LightTextPrimary else LightTextSecondary,
                                 fontSize = 12.sp,
-                                fontWeight = if (isVideoMode) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (isVideoMode) FontWeight.Bold else FontWeight.Medium
                             )
                         }
                     }
                 }
 
-                // Right: 3-Dots Menu & Cast
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onOpenPlayerOptions) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Options",
-                            tint = YtTextPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                // Right: 3-Dots Menu
+                IconButton(onClick = onOpenPlayerOptions) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = LightTextPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.weight(0.4f))
 
-            // 2. Square Artwork with YouTube Music rounded corners (~12dp) and swipe gestures
+            // 2. Square Artwork with rounded corners and swipe gestures
             var dragOffset by remember { mutableFloatStateOf(0f) }
 
             Box(
@@ -209,9 +212,9 @@ fun FullPlayerSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .shadow(24.dp, RoundedCornerShape(12.dp), spotColor = Color.Black.copy(alpha = 0.8f))
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(YtSurface),
+                        .shadow(16.dp, RoundedCornerShape(14.dp), spotColor = Color(0x33000000), ambientColor = Color(0x14000000))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(LightSurfaceElevated),
                     contentAlignment = Alignment.Center
                 ) {
                     if (upgradedCoverUrl.isNotBlank()) {
@@ -225,7 +228,7 @@ fun FullPlayerSheet(
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = YtTextSecondary,
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(80.dp)
                         )
                     }
@@ -234,7 +237,7 @@ fun FullPlayerSheet(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.6f)),
+                                .background(Color.Black.copy(alpha = 0.5f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -270,7 +273,7 @@ fun FullPlayerSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = track.title,
-                        color = YtTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -279,14 +282,14 @@ fun FullPlayerSheet(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = track.artist,
-                        color = YtTextSecondary,
+                        color = LightTextSecondary,
                         fontSize = 14.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // Thumbs Down & Thumbs Up (YouTube Music 1:1)
+                // Thumbs Down & Thumbs Up
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -298,7 +301,7 @@ fun FullPlayerSheet(
                         Icon(
                             imageVector = if (isDisliked) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
                             contentDescription = "Dislike",
-                            tint = if (isDisliked) Color.White else YtTextSecondary,
+                            tint = if (isDisliked) YtRed else LightTextSecondary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -310,7 +313,7 @@ fun FullPlayerSheet(
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
                             contentDescription = "Like",
-                            tint = if (isFavorite) Color.White else YtTextSecondary,
+                            tint = if (isFavorite) YtRed else LightTextSecondary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -350,7 +353,7 @@ fun FullPlayerSheet(
                 colors = SliderDefaults.colors(
                     thumbColor = YtRed,
                     activeTrackColor = YtRed,
-                    inactiveTrackColor = Color(0x33FFFFFF)
+                    inactiveTrackColor = Color(0xFFE5E7EB)
                 )
             )
 
@@ -369,13 +372,13 @@ fun FullPlayerSheet(
             ) {
                 Text(
                     text = formatMs(displayedPositionMs),
-                    color = YtTextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = if (totalDuration > 0L) formatMs(totalDuration) else "--:--",
-                    color = YtTextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -394,7 +397,7 @@ fun FullPlayerSheet(
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (isShuffle) Color.White else YtTextSecondary,
+                        tint = if (isShuffle) YtRed else LightTextSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -407,31 +410,31 @@ fun FullPlayerSheet(
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous",
-                        tint = YtTextPrimary,
+                        tint = LightTextPrimary,
                         modifier = Modifier.size(36.dp)
                     )
                 }
 
-                // Center Circular Play/Pause (Pure White button with black icon)
+                // Center Circular Play/Pause (Deep Black button with pure white icon for striking contrast)
                 Box(
                     modifier = Modifier
                         .size(68.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(LightTextPrimary)
                         .clickable { onPlayPauseClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     if (isBuffering) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(28.dp),
-                            color = Color(0xFF0F0F0F),
+                            color = Color.White,
                             strokeWidth = 2.5.dp
                         )
                     } else {
                         Icon(
                             imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color(0xFF0F0F0F),
+                            tint = Color.White,
                             modifier = Modifier.size(38.dp)
                         )
                     }
@@ -445,7 +448,7 @@ fun FullPlayerSheet(
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next",
-                        tint = YtTextPrimary,
+                        tint = LightTextPrimary,
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -459,7 +462,7 @@ fun FullPlayerSheet(
                             else -> Icons.Default.Repeat
                         },
                         contentDescription = "Repeat",
-                        tint = if (repeatMode > 0) Color.White else YtTextSecondary,
+                        tint = if (repeatMode > 0) YtRed else LightTextSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -467,7 +470,7 @@ fun FullPlayerSheet(
 
             Spacer(modifier = Modifier.weight(0.4f))
 
-            // 6. YouTube Music Action Dock (Download & Data Saver Quick Chip)
+            // 6. Action Dock (Download & Data Saver Quick Chip)
             val isDownloaded = track.isDownloaded || downloadProgress?.isCompleted == true
             val isDownloading = downloadProgress?.isDownloading == true
 
@@ -496,7 +499,7 @@ fun FullPlayerSheet(
                         )
                         Text(
                             text = "${downloadProgress?.progressPercent ?: 0}%",
-                            color = Color.White,
+                            color = LightTextPrimary,
                             fontSize = 12.sp
                         )
                     } else if (isDownloaded) {
@@ -516,12 +519,12 @@ fun FullPlayerSheet(
                         Icon(
                             imageVector = Icons.Outlined.Download,
                             contentDescription = "Download",
-                            tint = YtTextSecondary,
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = strings.playerDownload,
-                            color = YtTextSecondary,
+                            color = LightTextSecondary,
                             fontSize = 12.sp
                         )
                     }
@@ -538,7 +541,7 @@ fun FullPlayerSheet(
                 ) {
                     Text(
                         text = if (isEconomyMode) strings.dataSaverEco else strings.dataSaverNorm,
-                        color = if (isEconomyMode) GreenSuccess else Color.White,
+                        color = if (isEconomyMode) GreenSuccess else LightTextPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -562,15 +565,14 @@ fun FullPlayerSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 7. YouTube Music Signature 3-Tab Bottom Pill
-            // "СЛЕДУЮЩИЕ"  |  "ТЕКСТ"  |  "ПОХОЖИЕ"
+            // 7. Signature 3-Tab Bottom Pill (UP NEXT | LYRICS | RELATED)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(YtSurface)
-                    .border(1.dp, YtSurfaceBorder, RoundedCornerShape(24.dp))
+                    .background(LightSurfaceElevated)
+                    .border(1.dp, LightBorder, RoundedCornerShape(24.dp))
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -587,7 +589,7 @@ fun FullPlayerSheet(
                     ) {
                         Text(
                             text = strings.playerTabUpNext,
-                            color = YtTextPrimary,
+                            color = LightTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
@@ -598,7 +600,7 @@ fun FullPlayerSheet(
                         modifier = Modifier
                             .width(1.dp)
                             .height(20.dp)
-                            .background(Color(0x22FFFFFF))
+                            .background(LightBorder)
                     )
 
                     // LYRICS Tab
@@ -611,7 +613,7 @@ fun FullPlayerSheet(
                     ) {
                         Text(
                             text = strings.playerTabLyrics,
-                            color = YtTextPrimary,
+                            color = LightTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
@@ -622,7 +624,7 @@ fun FullPlayerSheet(
                         modifier = Modifier
                             .width(1.dp)
                             .height(20.dp)
-                            .background(Color(0x22FFFFFF))
+                            .background(LightBorder)
                     )
 
                     // RELATED Tab
@@ -635,7 +637,7 @@ fun FullPlayerSheet(
                     ) {
                         Text(
                             text = strings.playerTabRelated,
-                            color = YtTextPrimary,
+                            color = LightTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
@@ -651,7 +653,7 @@ fun FullPlayerSheet(
         if (selectedBottomTab != null) {
             ModalBottomSheet(
                 onDismissRequest = { selectedBottomTab = null },
-                containerColor = YtSurfaceElevated,
+                containerColor = LightSurface,
                 dragHandle = {
                     Box(
                         modifier = Modifier
@@ -659,7 +661,7 @@ fun FullPlayerSheet(
                             .width(40.dp)
                             .height(4.dp)
                             .clip(CircleShape)
-                            .background(Color(0x44FFFFFF))
+                            .background(Color(0xFFD1D5DB))
                     )
                 }
             ) {
@@ -690,7 +692,7 @@ fun FullPlayerSheet(
                             ) {
                                 Text(
                                     text = label,
-                                    color = if (isTabSelected) Color.White else YtTextSecondary,
+                                    color = if (isTabSelected) LightTextPrimary else LightTextSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = if (isTabSelected) FontWeight.Bold else FontWeight.Medium,
                                     letterSpacing = 0.5.sp
@@ -723,13 +725,13 @@ fun FullPlayerSheet(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = strings.autoplayTitle,
-                                        color = YtTextPrimary,
+                                        color = LightTextPrimary,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
                                         text = strings.autoplaySubtitle,
-                                        color = YtTextSecondary,
+                                        color = LightTextSecondary,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -743,7 +745,7 @@ fun FullPlayerSheet(
                                 )
                             }
 
-                            HorizontalDivider(color = Color(0x1AFFFFFF), thickness = 1.dp)
+                            HorizontalDivider(color = LightBorder, thickness = 1.dp)
 
                             // Upcoming Queue List
                             LazyColumn(
@@ -757,7 +759,7 @@ fun FullPlayerSheet(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(if (isCurrent) Color(0x22FFFFFF) else Color.Transparent)
+                                            .background(if (isCurrent) LightSurfaceElevated else Color.Transparent)
                                             .clickable {
                                                 onQueueTrackClick(qTrack)
                                                 selectedBottomTab = null
@@ -768,7 +770,7 @@ fun FullPlayerSheet(
                                     ) {
                                         Text(
                                             text = "${idx + 1}",
-                                            color = if (isCurrent) YtRed else YtTextSecondary,
+                                            color = if (isCurrent) YtRed else LightTextSecondary,
                                             fontSize = 13.sp,
                                             fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                                             modifier = Modifier.width(24.dp)
@@ -777,7 +779,7 @@ fun FullPlayerSheet(
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = qTrack.title,
-                                                color = if (isCurrent) YtRed else YtTextPrimary,
+                                                color = if (isCurrent) YtRed else LightTextPrimary,
                                                 fontSize = 14.sp,
                                                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                                                 maxLines = 1,
@@ -785,7 +787,7 @@ fun FullPlayerSheet(
                                             )
                                             Text(
                                                 text = qTrack.artist,
-                                                color = YtTextSecondary,
+                                                color = LightTextSecondary,
                                                 fontSize = 12.sp,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
@@ -842,7 +844,7 @@ fun FullPlayerSheet(
                                         val isCurrent = idx == activeIndex
                                         Text(
                                             text = line.text,
-                                            color = if (isCurrent) Color.White else Color(0x44FFFFFF),
+                                            color = if (isCurrent) LightTextPrimary else Color(0xFF9AA0A6),
                                             fontSize = if (isCurrent) 22.sp else 16.sp,
                                             fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                                             modifier = Modifier
@@ -861,7 +863,7 @@ fun FullPlayerSheet(
                                     item {
                                         Text(
                                             text = lyricsResult.plainLyrics,
-                                            color = Color.White.copy(alpha = 0.88f),
+                                            color = LightTextPrimary,
                                             fontSize = 16.sp,
                                             lineHeight = 24.sp,
                                             modifier = Modifier.fillMaxWidth()
@@ -875,7 +877,7 @@ fun FullPlayerSheet(
                                 ) {
                                     Text(
                                         text = strings.lyricsUnavailable,
-                                        color = YtTextSecondary,
+                                        color = LightTextSecondary,
                                         fontSize = 14.sp
                                     )
                                 }
@@ -891,7 +893,7 @@ fun FullPlayerSheet(
                                 ) {
                                     Text(
                                         text = strings.relatedEmpty,
-                                        color = YtTextSecondary,
+                                        color = LightTextSecondary,
                                         fontSize = 14.sp
                                     )
                                 }
@@ -904,7 +906,7 @@ fun FullPlayerSheet(
                                     item {
                                         Text(
                                             text = strings.relatedHeader,
-                                            color = YtTextSecondary,
+                                            color = LightTextSecondary,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium,
                                             modifier = Modifier.padding(bottom = 6.dp)
@@ -926,8 +928,8 @@ fun FullPlayerSheet(
                                             Box(
                                                 modifier = Modifier
                                                     .size(44.dp)
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(YtSurface),
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(LightSurfaceElevated),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 if (rTrack.coverUrl.isNotBlank()) {
@@ -943,7 +945,7 @@ fun FullPlayerSheet(
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(
                                                     text = rTrack.title,
-                                                    color = YtTextPrimary,
+                                                    color = LightTextPrimary,
                                                     fontSize = 14.sp,
                                                     fontWeight = FontWeight.Medium,
                                                     maxLines = 1,
@@ -951,7 +953,7 @@ fun FullPlayerSheet(
                                                 )
                                                 Text(
                                                     text = rTrack.artist,
-                                                    color = YtTextSecondary,
+                                                    color = LightTextSecondary,
                                                     fontSize = 12.sp,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
@@ -961,7 +963,7 @@ fun FullPlayerSheet(
                                             Icon(
                                                 imageVector = Icons.Default.PlayArrow,
                                                 contentDescription = null,
-                                                tint = Color.White,
+                                                tint = LightTextPrimary,
                                                 modifier = Modifier.size(22.dp)
                                             )
                                         }

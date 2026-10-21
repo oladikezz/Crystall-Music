@@ -23,11 +23,11 @@ import androidx.compose.ui.unit.sp
 import com.crystall.music.ui.i18n.AppLanguage
 import com.crystall.music.ui.i18n.LocalAppLanguage
 import com.crystall.music.ui.i18n.LocalStrings
-import com.crystall.music.ui.theme.TextPrimary
-import com.crystall.music.ui.theme.TextSecondary
-import com.crystall.music.ui.theme.YtRed
-import com.crystall.music.ui.theme.YtSurfaceElevated
+import com.crystall.music.ui.theme.*
 
+/**
+ * YouTube Music Clean Light Language Picker Sheet
+ */
 @Composable
 fun LanguagePickerSheet(
     onSelectLanguage: (AppLanguage) -> Unit,
@@ -39,7 +39,7 @@ fun LanguagePickerSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.7f))
+            .background(Color.Black.copy(alpha = 0.45f))
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -48,15 +48,15 @@ fun LanguagePickerSheet(
                 .fillMaxWidth()
                 .clickable(enabled = false) {}
                 .shadow(
-                    elevation = 32.dp,
+                    elevation = 24.dp,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    spotColor = Color.Black.copy(alpha = 0.85f)
+                    spotColor = Color(0x30000000)
                 )
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(YtSurfaceElevated)
+                .background(LightSurface)
                 .border(
                     width = 1.dp,
-                    color = Color(0x28FFFFFF),
+                    color = LightBorder,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                 )
         ) {
@@ -73,7 +73,7 @@ fun LanguagePickerSheet(
                         .width(40.dp)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(Color(0x4DFFFFFF))
+                        .background(Color(0xFFD1D5DB))
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -92,19 +92,19 @@ fun LanguagePickerSheet(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0x20FFFFFF)),
+                                .background(LightSurfaceElevated),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Language,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Text(
                             text = strings.optionsLanguageTitle,
-                            color = Color.White,
+                            color = LightTextPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -117,7 +117,7 @@ fun LanguagePickerSheet(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = TextSecondary,
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -160,11 +160,11 @@ private fun LanguageItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(
-                if (isSelected) Color(0x30FFFFFF) else Color(0x14FFFFFF)
+                if (isSelected) Color(0x1F34C759) else LightSurfaceElevated
             )
             .border(
                 width = if (isSelected) 1.5.dp else 0.5.dp,
-                color = if (isSelected) Color.White.copy(alpha = 0.8f) else Color(0x20FFFFFF),
+                color = if (isSelected) GreenSuccess else LightBorder,
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick)
@@ -188,13 +188,13 @@ private fun LanguageItem(
                 Column {
                     Text(
                         text = language.nativeName,
-                        color = TextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 16.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                     Text(
                         text = language.displayName,
-                        color = TextSecondary,
+                        color = LightTextSecondary,
                         fontSize = 12.sp
                     )
                 }
@@ -205,7 +205,7 @@ private fun LanguageItem(
                     modifier = Modifier
                         .size(26.dp)
                         .clip(CircleShape)
-                        .background(YtRed),
+                        .background(GreenSuccess),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

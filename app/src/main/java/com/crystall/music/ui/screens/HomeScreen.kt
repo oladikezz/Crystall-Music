@@ -40,8 +40,10 @@ import com.crystall.music.ui.components.TrackItem
 import com.crystall.music.ui.i18n.LocalAppLanguage
 import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
-import java.util.Calendar
 
+/**
+ * 1:1 YouTube Music Clean Light Home Feed
+ */
 @Composable
 fun HomeScreen(
     trendingTracks: List<Track>,
@@ -69,7 +71,7 @@ fun HomeScreen(
     val strings = LocalStrings.current
     val currentLang = LocalAppLanguage.current
 
-    // Localized mood list: Pair of key to localized display name
+    // Localized mood list
     val moodList = listOf(
         "all" to strings.moodAll,
         "relax" to strings.moodRelax,
@@ -82,12 +84,12 @@ fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
             .statusBarsPadding()
             .padding(bottom = 96.dp)
     ) {
         // -------------------------------------------------------------
-        // 1. TOP BAR: Production YouTube Music & Spotify Header
+        // 1. TOP BAR: Clean Light Brand Header
         // -------------------------------------------------------------
         item {
             Row(
@@ -109,14 +111,14 @@ fun HomeScreen(
                     )
                     Text(
                         text = "Crystall",
-                        color = Color.White,
+                        color = LightTextPrimary,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
                     )
                 }
 
-                // Right: Production Action Buttons (Search & Settings)
+                // Right: Action Buttons (Search & Settings)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -126,12 +128,12 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(Color(0x14FFFFFF))
+                            .background(LightSurfaceElevated)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = Color.White,
+                            tint = LightTextPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -141,12 +143,12 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(Color(0x14FFFFFF))
+                            .background(LightSurfaceElevated)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
                             contentDescription = "Settings",
-                            tint = Color.White,
+                            tint = LightTextPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -155,7 +157,7 @@ fun HomeScreen(
         }
 
         // -------------------------------------------------------------
-        // 2. MOOD & ACTIVITY FILTER CHIPS (YouTube Music 1:1)
+        // 2. MOOD & ACTIVITY FILTER CHIPS (YouTube Music 1:1 Light)
         // -------------------------------------------------------------
         item {
             LazyRow(
@@ -169,15 +171,15 @@ fun HomeScreen(
                     val isSelected = (key == selectedMood || (selectedMood == "Все" && key == "all"))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isSelected) Color.White else Color(0x18FFFFFF))
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(if (isSelected) LightChipSelectedBackground else LightChipBackground)
                             .clickable { onSelectMood(key) }
                             .padding(horizontal = 14.dp, vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = displayName,
-                            color = if (isSelected) Color.Black else YtTextPrimary,
+                            color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
@@ -188,7 +190,7 @@ fun HomeScreen(
         }
 
         // -------------------------------------------------------------
-        // 3. SLEEK PERSONALIZED FLOW (My Wave / Personal Stream)
+        // 3. PERSONALIZED FLOW HERO CARD (My Wave / Personal Stream)
         // -------------------------------------------------------------
         item {
             Box(
@@ -196,8 +198,8 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF141418))
-                    .border(0.5.dp, Color(0x1FFFFFFF), RoundedCornerShape(16.dp))
+                    .background(LightSurfaceElevated)
+                    .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                     .clickable { onPlayMyWave() }
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
@@ -214,7 +216,8 @@ fun HomeScreen(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(Color(0x24FFFFFF)),
+                                .background(LightSurface)
+                                .shadow(2.dp, CircleShape, spotColor = Color(0x18000000)),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isPlaying) {
@@ -223,13 +226,14 @@ fun HomeScreen(
                                     barCount = 3,
                                     barWidth = 2.dp,
                                     maxHeight = 14.dp,
-                                    barSpacing = 1.5.dp
+                                    barSpacing = 1.5.dp,
+                                    color = YtRed
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.GraphicEq,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = YtRed,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -238,14 +242,14 @@ fun HomeScreen(
                         Column {
                             Text(
                                 text = strings.waveTitle,
-                                color = Color.White,
+                                color = LightTextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = strings.waveSubtitle,
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 12.sp
                             )
                         }
@@ -255,13 +259,13 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(Color.White),
+                            .background(LightTextPrimary),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = strings.waveButtonPlay,
-                            tint = Color.Black,
+                            tint = Color.White,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -283,13 +287,13 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = strings.quickPicksSubtitle,
-                        color = YtTextSecondary,
+                        color = LightTextSecondary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal
                     )
                     Text(
                         text = strings.quickPicksTitle,
-                        color = YtTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
@@ -327,7 +331,7 @@ fun HomeScreen(
         }
 
         // -------------------------------------------------------------
-        // 5. SPOTIFY "LISTEN AGAIN" (Horizontal Album Carousel)
+        // 5. ALBUM CAROUSEL ("LISTEN AGAIN")
         // -------------------------------------------------------------
         if (recentTracks.isNotEmpty()) {
             item {
@@ -338,7 +342,7 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = strings.listenAgainTitle,
-                        color = YtTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
@@ -368,7 +372,7 @@ fun HomeScreen(
         }
 
         // -------------------------------------------------------------
-        // 6. IMPORT PLAYLIST BANNER (Frosted Glass Card)
+        // 6. IMPORT PLAYLIST BANNER
         // -------------------------------------------------------------
         item {
             Box(
@@ -376,8 +380,8 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0x1AFFFFFF))
-                    .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(16.dp))
+                    .background(LightSurfaceElevated)
+                    .border(1.dp, LightBorder, RoundedCornerShape(16.dp))
                     .clickable { onNavigateToImport() }
                     .padding(16.dp)
             ) {
@@ -395,26 +399,27 @@ fun HomeScreen(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(Color(0x22FFFFFF)),
+                                .background(LightSurface)
+                                .shadow(2.dp, CircleShape, spotColor = Color(0x18000000)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AddLink,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LightTextPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                         Column {
                             Text(
                                 text = strings.importBannerTitle,
-                                color = YtTextPrimary,
+                                color = LightTextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
                                 text = strings.importBannerSubtitle,
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 12.sp
                             )
                         }
@@ -422,7 +427,7 @@ fun HomeScreen(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = YtTextSecondary,
+                        tint = LightTextSecondary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -452,7 +457,7 @@ fun HomeScreen(
 
                 Text(
                     text = headerTitle,
-                    color = YtTextPrimary,
+                    color = LightTextPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
@@ -461,7 +466,7 @@ fun HomeScreen(
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = Color.White,
+                        color = YtRed,
                         strokeWidth = 2.dp
                     )
                 }
@@ -485,7 +490,7 @@ fun HomeScreen(
 }
 
 // -------------------------------------------------------------
-// YouTube Music / SoundCloud Quick Pick Track Item
+// YouTube Music Quick Pick Track Item (Clean Light)
 // -------------------------------------------------------------
 @Composable
 fun QuickPickTrackItem(
@@ -503,10 +508,10 @@ fun QuickPickTrackItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isCurrentTrack) Color(0x22FFFFFF) else Color(0x0EFFFFFF))
+            .background(if (isCurrentTrack) LightSurfaceElevated else LightSurface)
             .border(
                 width = 0.5.dp,
-                color = if (isCurrentTrack) Color(0x44FFFFFF) else Color(0x18FFFFFF),
+                color = if (isCurrentTrack) YtRed.copy(alpha = 0.35f) else LightBorder,
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
@@ -519,7 +524,7 @@ fun QuickPickTrackItem(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(YtSurface),
+                .background(LightSurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (thumb.isNotBlank()) {
@@ -533,7 +538,7 @@ fun QuickPickTrackItem(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = YtTextSecondary,
+                    tint = LightTextSecondary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -542,7 +547,7 @@ fun QuickPickTrackItem(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.55f)),
+                        .background(Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isPlaying) {
@@ -552,7 +557,8 @@ fun QuickPickTrackItem(
                             barWidth = 2.dp,
                             maxHeight = 14.dp,
                             minHeight = 3.dp,
-                            barSpacing = 1.5.dp
+                            barSpacing = 1.5.dp,
+                            color = Color.White
                         )
                     } else {
                         Icon(
@@ -570,7 +576,7 @@ fun QuickPickTrackItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrentTrack) Color.White else YtTextPrimary,
+                color = if (isCurrentTrack) YtRed else LightTextPrimary,
                 fontSize = 14.sp,
                 fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
@@ -578,7 +584,7 @@ fun QuickPickTrackItem(
             )
             Text(
                 text = track.artist,
-                color = YtTextSecondary,
+                color = LightTextSecondary,
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -589,14 +595,14 @@ fun QuickPickTrackItem(
         Icon(
             imageVector = Icons.Default.MoreVert,
             contentDescription = null,
-            tint = YtTextSecondary,
+            tint = LightTextSecondary,
             modifier = Modifier.size(20.dp)
         )
     }
 }
 
 // -------------------------------------------------------------
-// Spotify / YouTube Music Square Album Card (for carousels)
+// YouTube Music Square Album Card (Clean Light for carousels)
 // -------------------------------------------------------------
 @Composable
 fun YtAlbumCard(
@@ -618,10 +624,10 @@ fun YtAlbumCard(
         Box(
             modifier = Modifier
                 .size(135.dp)
-                .shadow(12.dp, RoundedCornerShape(14.dp), spotColor = Color.Black.copy(alpha = 0.6f))
-                .clip(RoundedCornerShape(14.dp))
-                .background(YtSurface)
-                .border(0.5.dp, Color(0x25FFFFFF), RoundedCornerShape(14.dp)),
+                .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = Color(0x20000000))
+                .clip(RoundedCornerShape(12.dp))
+                .background(LightSurfaceElevated)
+                .border(0.5.dp, LightBorder, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (thumb.isNotBlank()) {
@@ -635,7 +641,7 @@ fun YtAlbumCard(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = YtTextSecondary,
+                    tint = LightTextSecondary,
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -654,7 +660,8 @@ fun YtAlbumCard(
                             barWidth = 3.dp,
                             maxHeight = 22.dp,
                             minHeight = 4.dp,
-                            barSpacing = 2.dp
+                            barSpacing = 2.dp,
+                            color = Color.White
                         )
                     } else {
                         Icon(
@@ -672,7 +679,7 @@ fun YtAlbumCard(
 
         Text(
             text = track.title,
-            color = if (isCurrentTrack) Color.White else YtTextPrimary,
+            color = if (isCurrentTrack) YtRed else LightTextPrimary,
             fontSize = 13.sp,
             fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
@@ -680,7 +687,7 @@ fun YtAlbumCard(
         )
         Text(
             text = track.artist,
-            color = YtTextSecondary,
+            color = LightTextSecondary,
             fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

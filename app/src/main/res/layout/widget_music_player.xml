@@ -32,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Crystall Music"
-            android:textColor="#FFFFFF"
+            android:textColor="#0F0F12"
             android:textSize="14sp"
             android:textStyle="bold"
             android:maxLines="1"
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:text="Включите музыку"
-            android:textColor="#AAAAAA"
+            android:textColor="#5F6368"
             android:textSize="12sp"
             android:maxLines="1"
             android:ellipsize="end" />

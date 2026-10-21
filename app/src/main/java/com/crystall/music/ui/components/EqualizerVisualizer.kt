@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-
+import com.crystall.music.ui.theme.YtRed
 
 @Composable
 fun EqualizerVisualizer(
@@ -24,8 +24,10 @@ fun EqualizerVisualizer(
     maxHeight: Dp = 20.dp,
     minHeight: Dp = 3.dp,
     barSpacing: Dp = 2.dp,
-    barColor: Color = Color.White
+    barColor: Color = YtRed,
+    color: Color = barColor
 ) {
+    val activeColor = if (color != barColor) color else barColor
     val transition = rememberInfiniteTransition(label = "equalizer_transition")
 
     val h1 by transition.animateFloat(
@@ -93,7 +95,7 @@ fun EqualizerVisualizer(
                     .clip(RoundedCornerShape(barWidth / 2))
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.White, Color.White.copy(alpha = 0.55f))
+                            listOf(activeColor, activeColor.copy(alpha = 0.55f))
                         )
                     )
             )

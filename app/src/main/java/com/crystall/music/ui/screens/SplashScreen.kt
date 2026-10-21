@@ -13,9 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -24,6 +24,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crystall.music.R
+import com.crystall.music.ui.theme.LightBackground
+import com.crystall.music.ui.theme.LightBorder
+import com.crystall.music.ui.theme.LightSurfaceElevated
+import com.crystall.music.ui.theme.LightTextPrimary
+import com.crystall.music.ui.theme.LightTextSecondary
+import com.crystall.music.ui.theme.YouTubeRed
 import kotlinx.coroutines.delay
 
 @Composable
@@ -58,7 +64,7 @@ fun SplashScreen(
         label = "pulse_1"
     )
     val pulse1Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+        initialValue = 0.25f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(2400, easing = FastOutSlowInEasing),
@@ -77,7 +83,7 @@ fun SplashScreen(
         label = "pulse_2"
     )
     val pulse2Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
+        initialValue = 0.2f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(2800, delayMillis = 600, easing = FastOutSlowInEasing),
@@ -105,10 +111,10 @@ fun SplashScreen(
     val statusMessage by remember {
         derivedStateOf {
             when {
-                progress.value < 0.35f -> "Инициализация звукового ядра..."
+                progress.value < 0.35f -> "Инициализация аудиосистемы..."
                 progress.value < 0.75f -> "Синхронизация медиатеки..."
-                progress.value < 0.95f -> "Калибровка Liquid Glass..."
-                else -> "Погружение в музыку..."
+                progress.value < 0.95f -> "Загрузка рекомендаций..."
+                else -> "Готово к воспроизведению..."
             }
         }
     }
@@ -117,20 +123,20 @@ fun SplashScreen(
         animationStarted = true
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 2000, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 1800, easing = FastOutSlowInEasing)
         )
-        delay(350)
+        delay(250)
         onFinished()
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF08080C))
+            .background(LightBackground)
             .clickable { onFinished() }, // Instant tap-to-skip
         contentAlignment = Alignment.Center
     ) {
-        // Deep ambient atmospheric glow
+        // Soft subtle ambient glow
         Box(
             modifier = Modifier
                 .size(340.dp)
@@ -138,22 +144,22 @@ fun SplashScreen(
                 .background(
                     Brush.radialGradient(
                         listOf(
-                            Color(0xFFFF6B00).copy(alpha = 0.28f),
-                            Color(0xFF8A2BE2).copy(alpha = 0.18f),
+                            YouTubeRed.copy(alpha = 0.08f),
+                            Color(0x06000000),
                             Color.Transparent
                         )
                     )
                 )
         )
 
-        // Concentric Soundwave Pulse Ripples
+        // Concentric Soundwave Pulse Ripples (light modern rings)
         Box(
             modifier = Modifier
                 .size(130.dp)
                 .scale(pulse2)
                 .alpha(pulse2Alpha)
                 .clip(CircleShape)
-                .border(1.5.dp, Color(0x66FFFFFF), CircleShape)
+                .border(1.5.dp, Color(0x1F000000), CircleShape)
         )
         Box(
             modifier = Modifier
@@ -161,7 +167,7 @@ fun SplashScreen(
                 .scale(pulse1)
                 .alpha(pulse1Alpha)
                 .clip(CircleShape)
-                .border(1.5.dp, Color(0x88FFFFFF), CircleShape)
+                .border(1.5.dp, YouTubeRed.copy(alpha = 0.25f), CircleShape)
         )
 
         Column(
@@ -169,29 +175,18 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         ) {
-            // Central Crystal Logo Badge with Liquid Glass specularity
+            // Central Crystal Logo Card with clean light surface & subtle shadow
             Box(
                 modifier = Modifier
                     .scale(logoScale)
                     .alpha(logoAlpha)
                     .size(120.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(32.dp), spotColor = Color(0x14000000))
                     .clip(RoundedCornerShape(32.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0x28FFFFFF),
-                                Color(0x0AFFFFFF)
-                            )
-                        )
-                    )
+                    .background(LightSurfaceElevated)
                     .border(
-                        width = 1.2.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color(0x99FFFFFF),
-                                Color(0x22FFFFFF)
-                            )
-                        ),
+                        width = 1.dp,
+                        color = LightBorder,
                         shape = RoundedCornerShape(32.dp)
                     )
                     .padding(14.dp),
@@ -203,7 +198,7 @@ fun SplashScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Diagonal caustic light beam shimmer
+                // Diagonal light shimmer beam
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -212,7 +207,7 @@ fun SplashScreen(
                             Brush.linearGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.White.copy(alpha = 0.35f),
+                                    Color.White.copy(alpha = 0.4f),
                                     Color.Transparent
                                 ),
                                 start = Offset(shimmerOffset, 0f),
@@ -227,7 +222,7 @@ fun SplashScreen(
             // Typography: CRYSTALL MUSIC
             Text(
                 text = "C R Y S T A L L",
-                color = Color.White,
+                color = LightTextPrimary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 5.sp,
@@ -238,7 +233,7 @@ fun SplashScreen(
 
             Text(
                 text = "M U S I C",
-                color = Color.White.copy(alpha = 0.55f),
+                color = LightTextSecondary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 4.sp,
@@ -247,13 +242,13 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Liquid Glass Progress Capsule
+            // Progress Bar
             Box(
                 modifier = Modifier
                     .width(180.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color(0x18FFFFFF))
+                    .background(LightBorder)
             ) {
                 Box(
                     modifier = Modifier
@@ -263,8 +258,8 @@ fun SplashScreen(
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
-                                    Color(0xFFFF7A00),
-                                    Color(0xFFFFFFFF)
+                                    YouTubeRed,
+                                    Color(0xFFFF5252)
                                 )
                             )
                         )
@@ -276,7 +271,7 @@ fun SplashScreen(
             // Dynamic status text
             Text(
                 text = statusMessage,
-                color = Color.White.copy(alpha = 0.5f),
+                color = LightTextSecondary,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )

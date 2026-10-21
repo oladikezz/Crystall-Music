@@ -26,6 +26,9 @@ import com.crystall.music.ui.components.TrackItem
 import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
+/**
+ * 1:1 YouTube Music Clean Light Playlist Detail Sheet
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistDetailSheet(
@@ -45,11 +48,11 @@ fun PlaylistDetailSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = YtSurface,
+        containerColor = LightSurface,
         dragHandle = {
             Surface(
                 modifier = Modifier.padding(vertical = 10.dp),
-                color = Color(0x33FFFFFF),
+                color = Color(0xFFD1D5DB),
                 shape = RoundedCornerShape(999.dp)
             ) {
                 Box(modifier = Modifier.size(width = 36.dp, height = 4.dp))
@@ -70,7 +73,7 @@ fun PlaylistDetailSheet(
                     modifier = Modifier
                         .size(68.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(YtBackground),
+                        .background(LightSurfaceElevated),
                     contentAlignment = Alignment.Center
                 ) {
                     if (!playlist.coverUrl.isNullOrBlank()) {
@@ -84,7 +87,7 @@ fun PlaylistDetailSheet(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                             contentDescription = null,
-                            tint = YtTextSecondary,
+                            tint = LightTextSecondary,
                             modifier = Modifier.size(30.dp)
                         )
                     }
@@ -95,7 +98,7 @@ fun PlaylistDetailSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = playlist.title,
-                        color = YtTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
@@ -103,7 +106,7 @@ fun PlaylistDetailSheet(
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = "${playlist.author} • ${tracks.size} ${strings.playerTabUpNext.lowercase()}",
-                        color = YtTextSecondary,
+                        color = LightTextSecondary,
                         fontSize = 13.sp,
                         maxLines = 1
                     )
@@ -112,7 +115,7 @@ fun PlaylistDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action Buttons: Play All & Download All (YouTube Music Pills)
+            // Action Buttons: Play All & Download All (Clean Light Pills)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -126,11 +129,11 @@ fun PlaylistDetailSheet(
                     shape = RoundedCornerShape(999.dp),
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
+                        containerColor = LightTextPrimary,
+                        contentColor = Color.White
                     )
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(strings.playerPlay, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
@@ -140,11 +143,11 @@ fun PlaylistDetailSheet(
                     shape = RoundedCornerShape(999.dp),
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0x1EFFFFFF),
-                        contentColor = YtTextPrimary
+                        containerColor = LightSurfaceElevated,
+                        contentColor = LightTextPrimary
                     )
                 ) {
-                    Icon(Icons.Default.DownloadForOffline, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.DownloadForOffline, contentDescription = null, modifier = Modifier.size(18.dp), tint = LightTextPrimary)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(strings.importDownloadAll, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }

@@ -29,7 +29,7 @@ import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
 /**
- * Authentic YouTube Music & Spotify style dedicated Settings Screen
+ * YouTube Music & Apple Music Clean Light Settings Screen
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +60,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(YtBackground)
+            .background(LightBackground)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -75,13 +75,13 @@ fun SettingsScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = LightTextPrimary
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = strings.settingsTitle,
-                color = Color.White,
+                color = LightTextPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp
@@ -111,7 +111,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = null,
-                                tint = YtTextSecondary,
+                                tint = LightTextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -137,16 +137,16 @@ fun SettingsScreen(
                                     onCheckedChange = { onToggleEconomyMode() },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF30D158),
-                                        uncheckedThumbColor = YtTextSecondary,
-                                        uncheckedTrackColor = Color(0x33FFFFFF)
+                                        checkedTrackColor = GreenSuccess,
+                                        uncheckedThumbColor = Color.White,
+                                        uncheckedTrackColor = Color(0xFFE5E7EB)
                                     )
                                 )
                             }
                         )
 
                         HorizontalDivider(
-                            color = Color(0x14FFFFFF),
+                            color = LightBorder,
                             thickness = 0.5.dp,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -160,18 +160,18 @@ fun SettingsScreen(
                         ) {
                             Text(
                                 text = if (isEconomyMode) "Качество звука: Эконом (128 kbps)" else "Качество звука: Высокое (320 kbps)",
-                                color = YtTextSecondary,
+                                color = LightTextSecondary,
                                 fontSize = 12.sp
                             )
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isEconomyMode) Color(0x2830D158) else Color(0x28FFFFFF))
+                                    .background(if (isEconomyMode) Color(0x1F34C759) else LightSurfaceElevated)
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = if (isEconomyMode) "ECO" else "HQ",
-                                    color = if (isEconomyMode) Color(0xFF30D158) else Color.White,
+                                    color = if (isEconomyMode) GreenSuccess else LightTextPrimary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -200,16 +200,16 @@ fun SettingsScreen(
                                     onCheckedChange = { onToggleEndlessRadio() },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF30D158),
-                                        uncheckedThumbColor = YtTextSecondary,
-                                        uncheckedTrackColor = Color(0x33FFFFFF)
+                                        checkedTrackColor = GreenSuccess,
+                                        uncheckedThumbColor = Color.White,
+                                        uncheckedTrackColor = Color(0xFFE5E7EB)
                                     )
                                 )
                             }
                         )
 
                         HorizontalDivider(
-                            color = Color(0x14FFFFFF),
+                            color = LightBorder,
                             thickness = 0.5.dp,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -227,13 +227,13 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = strings.settingsSpeed,
-                                    color = Color.White,
+                                    color = LightTextPrimary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = "${playbackSpeed}x",
-                                    color = YtTextSecondary,
+                                    color = LightTextSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -250,14 +250,14 @@ fun SettingsScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(if (isSelected) Color.White else Color(0x18FFFFFF))
+                                            .background(if (isSelected) LightChipSelectedBackground else LightChipBackground)
                                             .clickable { onSetPlaybackSpeed(speed) }
                                             .padding(vertical = 8.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = "${speed}x",
-                                            color = if (isSelected) Color.Black else Color.White,
+                                            color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                                             fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         )
@@ -267,7 +267,7 @@ fun SettingsScreen(
                         }
 
                         HorizontalDivider(
-                            color = Color(0x14FFFFFF),
+                            color = LightBorder,
                             thickness = 0.5.dp,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -285,7 +285,7 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = strings.settingsSleepTimer,
-                                    color = Color.White,
+                                    color = LightTextPrimary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -299,7 +299,7 @@ fun SettingsScreen(
                                 }
                                 Text(
                                     text = timerStatus,
-                                    color = if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) Color(0xFF30D158) else YtTextSecondary,
+                                    color = if (sleepTimerRemainingMs != null || isSleepTimerEndOfTrack) GreenSuccess else LightTextSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -321,7 +321,7 @@ fun SettingsScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(if (isSelected) Color.White else Color(0x18FFFFFF))
+                                            .background(if (isSelected) LightChipSelectedBackground else LightChipBackground)
                                             .clickable {
                                                 if (minutes == 0) onCancelSleepTimer() else onSetSleepTimer(minutes)
                                             }
@@ -330,7 +330,7 @@ fun SettingsScreen(
                                     ) {
                                         Text(
                                             text = label,
-                                            color = if (isSelected) Color.Black else Color.White,
+                                            color = if (isSelected) LightChipSelectedText else LightTextPrimary,
                                             fontSize = 11.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         )
@@ -358,7 +358,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = null,
-                                tint = YtTextSecondary,
+                                tint = LightTextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -381,7 +381,7 @@ fun SettingsScreen(
                         )
 
                         HorizontalDivider(
-                            color = Color(0x14FFFFFF),
+                            color = LightBorder,
                             thickness = 0.5.dp,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -405,7 +405,7 @@ fun SettingsScreen(
                                 ) {
                                     Text(
                                         text = "Очистить",
-                                        color = Color(0xFF30D158),
+                                        color = GreenSuccess,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
@@ -416,7 +416,7 @@ fun SettingsScreen(
                         AnimatedVisibility(visible = isCacheClearedMessageVisible) {
                             Text(
                                 text = strings.settingsCacheCleared,
-                                color = Color(0xFF30D158),
+                                color = GreenSuccess,
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                             )
@@ -439,20 +439,20 @@ fun SettingsScreen(
                     ) {
                         Text(
                             text = "Crystall Music",
-                            color = Color.White,
+                            color = LightTextPrimary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${strings.settingsVersion} • YouTube Music & SoundCloud Engine",
-                            color = YtTextSecondary,
+                            color = LightTextSecondary,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = strings.settingsAboutDesc,
-                            color = YtTextSecondary.copy(alpha = 0.7f),
+                            color = LightTextMuted,
                             fontSize = 11.sp
                         )
                     }
@@ -466,7 +466,7 @@ fun SettingsScreen(
 private fun SettingsSectionTitle(title: String) {
     Text(
         text = title.uppercase(),
-        color = YtTextSecondary,
+        color = LightTextSecondary,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.8.sp,
@@ -481,8 +481,8 @@ private fun SettingsCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = YtSurface,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0x18FFFFFF))
+        color = LightSurface,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, LightBorder)
     ) {
         content()
     }
@@ -507,13 +507,13 @@ private fun SettingsRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color(0x18FFFFFF)),
+                .background(LightSurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = LightTextPrimary,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -523,7 +523,7 @@ private fun SettingsRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = LightTextPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -531,7 +531,7 @@ private fun SettingsRow(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
-                    color = YtTextSecondary,
+                    color = LightTextSecondary,
                     fontSize = 12.sp
                 )
             }
