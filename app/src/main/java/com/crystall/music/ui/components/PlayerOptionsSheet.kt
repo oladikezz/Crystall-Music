@@ -44,10 +44,12 @@ fun PlayerOptionsSheet(
     onSetPlaybackSpeed: (Float) -> Unit,
     onToggleEconomyMode: () -> Unit = {},
     onOpenLanguagePicker: () -> Unit = {},
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onHideArtist: (() -> Unit)? = null
 ) {
     val strings = LocalStrings.current
     val currentLang = LocalAppLanguage.current
+    val extra = com.crystall.music.ui.i18n.searchStrings(currentLang)
 
     Box(
         modifier = Modifier
@@ -90,6 +92,10 @@ fun PlayerOptionsSheet(
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
+
+                onHideArtist?.let { hideArtist ->
+                    TextButton(onClick = hideArtist) { Text(extra.lessArtist) }
+                }
 
                 // Title row
                 Row(
