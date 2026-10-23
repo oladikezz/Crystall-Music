@@ -10,6 +10,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -21,11 +23,24 @@ object SoundCloudEngine {
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
+    private companion object {
+        const val FALLBACK_CLIENT_ID = "Pb72ranhoyt6gw7hM7TkzUItXlMWSNSo"
+        const val FALLBACK_CACHE_MS = 10 * 60 * 1000L
+    }
+
     @Volatile
-    private var cachedClientId: String? = "Pb72ranhoyt6gw7hM7TkzUItXlMWSNSo"
+    private var cachedClientId: String? = null
+    @Volatile
+    private var cachedClientIdAtMs: Long = 0L
+    @Volatile
+    private var cachedClientIdIsFallback = false
 
     suspend fun getClientId(): String = withContext(Dispatchers.IO) {
-        cachedClientId?.let { return@withContext it }
+        cachedClientId?.let {
+            if (!cachedClientIdIsFallback || System.currentTimeMillis() - cachedClientIdAtMs < FALLBACK_CACHE_MS) {
+                return@withContext it
+            }
+        }
         try {
             val req = Request.Builder()
                 .url("https://soundcloud.com")
@@ -48,6 +63,8 @@ object SoundCloudEngine {
                     if (cidMatcher.find()) {
                         val cid = cidMatcher.group(1)
                         cachedClientId = cid
+                        cachedClientIdAtMs = System.currentTimeMillis()
+                        cachedClientIdIsFallback = false
                         return@withContext cid
                     }
                 } catch (_: Exception) {}
@@ -55,9 +72,40 @@ object SoundCloudEngine {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        val fallback = "Pb72ranhoyt6gw7hM7TkzUItXlMWSNSo"
-        cachedClientId = fallback
-        fallback
+        cachedClientId = FALLBACK_CLIENT_ID
+        cachedClientIdAtMs = System.currentTimeMillis()
+        cachedClientIdIsFallback = true
+        FALLBACK_CLIENT_ID
+    }
+
+    @Synchronized
+    private fun invalidateClientId(failedClientId: String) {
+        if (cachedClientId == failedClientId) {
+            cachedClientId = null
+            cachedClientIdAtMs = 0L
+            cachedClientIdIsFallback = false
+        }
+    }
+
+    private data class AuthenticatedResponse(val clientId: String, val response: Response)
+
+    private suspend fun executeWithClientId(requestFactory: (String) -> Request): AuthenticatedResponse? {
+        val firstClientId = getClientId()
+        var response = httpClient.newCall(requestFactory(firstClientId)).execute()
+        if (response.code !in 401..403 || response.code == 402) {
+            return AuthenticatedResponse(firstClientId, response)
+        }
+        response.close()
+        invalidateClientId(firstClientId)
+        val refreshedClientId = getClientId()
+        if (refreshedClientId == firstClientId) return null
+        response = httpClient.newCall(requestFactory(refreshedClientId)).execute()
+        if (response.code in 401..403 && response.code != 402) {
+            response.close()
+            invalidateClientId(refreshedClientId)
+            return null
+        }
+        return AuthenticatedResponse(refreshedClientId, response)
     }
 
     suspend fun search(query: String): List<Track> = withContext(Dispatchers.IO) {
