@@ -14,7 +14,7 @@ class MusicDatabaseHelper private constructor(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "crystall_music.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         @Volatile
         private var instance: MusicDatabaseHelper? = null
@@ -85,19 +85,61 @@ class MusicDatabaseHelper private constructor(context: Context) :
                 value TEXT
             )
         """.trimIndent())
+
+        createIndexes(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS play_history")
-        db.execSQL("DROP TABLE IF EXISTS favorites")
-        db.execSQL("DROP TABLE IF EXISTS playlist_tracks")
-        db.execSQL("DROP TABLE IF EXISTS playlists")
-        db.execSQL("DROP TABLE IF EXISTS tracks")
-        onCreate(db)
+        var version = oldVersion
+        while (version < newVersion) {
+            version = when (version) {
+                1 -> {
+                    migrateToVersion2(db)
+                    2
+                }
+                else -> throw IllegalStateException("No database migration from version $version")
+            }
+        }
+    }
+
+    private fun migrateToVersion2(db: SQLiteDatabase) {
+        createIndexes(db)
+    }
+
+    private fun createIndexes(db: SQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_tracks_playlist_position ON playlist_tracks(playlist_id, position)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_favorites_added_at ON favorites(added_at)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_play_history_played_at ON play_history(played_at)")
     }
 
     fun insertOrUpdateTrack(track: Track) {
         val db = writableDatabase
+        db.beginTransaction()
+        try {
+            upsertTrack(db, track)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    private fun upsertTrack(db: SQLiteDatabase, track: Track) {
+        val existingDownload = db.query(
+            "tracks",
+            arrayOf("is_downloaded", "local_path"),
+            "id = ?",
+            arrayOf(track.id),
+            null,
+            null,
+            null
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                (cursor.getInt(0) == 1) to cursor.getString(1)
+            } else {
+                false to null
+            }
+        }
+        val preserveDownload = existingDownload.first && track.localPath == null
         val cv = ContentValues().apply {
             put("id", track.id)
             put("title", track.title)
@@ -105,18 +147,21 @@ class MusicDatabaseHelper private constructor(context: Context) :
             put("duration_ms", track.durationMs)
             put("cover_url", track.coverUrl)
             if (track.streamUrl != null) put("stream_url", track.streamUrl)
-            if (track.localPath != null) put("local_path", track.localPath)
+            if (track.localPath != null) {
+                put("local_path", track.localPath)
+            } else if (preserveDownload) {
+                put("local_path", existingDownload.second)
+            } else {
+                putNull("local_path")
+            }
             put("source", track.source.name)
-            put("is_downloaded", if (track.isDownloaded) 1 else 0)
+            put("is_downloaded", if (track.isDownloaded || preserveDownload) 1 else 0)
             put("waveform_url", track.waveformUrl)
             put("added_at", track.addedAt)
         }
-        db.insertWithOnConflict(
-            "tracks",
-            null,
-            cv,
-            SQLiteDatabase.CONFLICT_REPLACE
-        )
+        if (db.update("tracks", cv, "id = ?", arrayOf(track.id)) == 0) {
+            db.insert("tracks", null, cv)
+        }
     }
 
     fun getTrack(trackId: String): Track? {
@@ -262,6 +307,7 @@ class MusicDatabaseHelper private constructor(context: Context) :
 
     fun savePlaylist(playlist: Playlist, tracks: List<Track>) {
         val db = writableDatabase
+        val uniqueTracks = tracks.distinctBy { it.id }
         db.beginTransaction()
         try {
             val cv = ContentValues().apply {
@@ -269,16 +315,18 @@ class MusicDatabaseHelper private constructor(context: Context) :
                 put("title", playlist.title)
                 put("author", playlist.author)
                 put("source_url", playlist.sourceUrl)
-                put("cover_url", playlist.coverUrl ?: tracks.firstOrNull()?.coverUrl)
-                put("track_count", tracks.size)
+                put("cover_url", playlist.coverUrl ?: uniqueTracks.firstOrNull()?.coverUrl)
+                put("track_count", uniqueTracks.size)
                 put("is_imported", if (playlist.isImported) 1 else 0)
                 put("created_at", playlist.createdAt)
             }
-            db.insertWithOnConflict("playlists", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+            if (db.update("playlists", cv, "id = ?", arrayOf(playlist.id)) == 0) {
+                db.insert("playlists", null, cv)
+            }
 
-            // Save all tracks
-            for ((idx, track) in tracks.withIndex()) {
-                insertOrUpdateTrack(track)
+            db.delete("playlist_tracks", "playlist_id = ?", arrayOf(playlist.id))
+            for ((idx, track) in uniqueTracks.withIndex()) {
+                upsertTrack(db, track)
                 val ptCv = ContentValues().apply {
                     put("playlist_id", playlist.id)
                     put("track_id", track.id)
@@ -339,6 +387,54 @@ class MusicDatabaseHelper private constructor(context: Context) :
         db.delete("playlists", "id = ?", arrayOf(playlistId))
     }
 
+    fun renamePlaylist(id: String, title: String): Boolean {
+        val values = ContentValues().apply { put("title", title) }
+        return writableDatabase.update("playlists", values, "id = ?", arrayOf(id)) > 0
+    }
+
+    fun removeTrackFromPlaylist(playlistId: String, trackId: String): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val removed = db.delete(
+                "playlist_tracks",
+                "playlist_id = ? AND track_id = ?",
+                arrayOf(playlistId, trackId)
+            ) > 0
+            reindexPlaylistTracks(db, playlistId)
+            db.setTransactionSuccessful()
+            return removed
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    private fun reindexPlaylistTracks(db: SQLiteDatabase, playlistId: String) {
+        val trackIds = mutableListOf<String>()
+        db.query(
+            "playlist_tracks",
+            arrayOf("track_id"),
+            "playlist_id = ?",
+            arrayOf(playlistId),
+            null,
+            null,
+            "position ASC"
+        ).use { cursor ->
+            while (cursor.moveToNext()) trackIds += cursor.getString(0)
+        }
+        trackIds.forEachIndexed { position, id ->
+            val values = ContentValues().apply { put("position", position) }
+            db.update(
+                "playlist_tracks",
+                values,
+                "playlist_id = ? AND track_id = ?",
+                arrayOf(playlistId, id)
+            )
+        }
+        val count = ContentValues().apply { put("track_count", trackIds.size) }
+        db.update("playlists", count, "id = ?", arrayOf(playlistId))
+    }
+
     private fun cursorToTrack(c: Cursor): Track {
         val sourceStr = c.getString(c.getColumnIndexOrThrow("source")) ?: "YOUTUBE"
         val source = try {
@@ -394,6 +490,41 @@ class MusicDatabaseHelper private constructor(context: Context) :
 
     fun saveFavoriteArtists(artists: List<String>) {
         setSetting("favorite_artists", artists.joinToString("|||"))
+    }
+
+    fun getBlockedArtists(): Set<String> = getDelimitedSetting("blocked_artists", "|||").toSet()
+
+    fun setBlockedArtists(artists: Set<String>) {
+        setSetting("blocked_artists", artists.joinToString("|||"))
+    }
+
+    private fun getDelimitedSetting(key: String, delimiter: String): List<String> {
+        val raw = getSetting(key, "")
+        if (raw.isBlank()) return emptyList()
+        return raw.split(delimiter).map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    fun getRecommendationFeedback(): Map<String, String> {
+        val prefix = "recommendation_feedback_"
+        val feedback = mutableMapOf<String, String>()
+        readableDatabase.query("settings", arrayOf("key", "value"), null, null, null, null, null).use { cursor ->
+            while (cursor.moveToNext()) {
+                val key = cursor.getString(0)
+                if (key.startsWith(prefix)) {
+                    feedback[key.removePrefix(prefix)] = cursor.getString(1).orEmpty()
+                }
+            }
+        }
+        return feedback
+    }
+
+    fun setRecommendationFeedback(trackId: String, feedback: String?) {
+        val key = "recommendation_feedback_$trackId"
+        if (feedback.isNullOrBlank()) {
+            writableDatabase.delete("settings", "key = ?", arrayOf(key))
+        } else {
+            setSetting(key, feedback)
+        }
     }
 
     fun hasCompletedTasteOnboarding(): Boolean {
