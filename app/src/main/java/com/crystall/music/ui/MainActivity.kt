@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,7 +68,7 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
 
         setContent {
-            val currentLanguage by viewModel.currentLanguage.collectAsState()
+            val currentLanguage by viewModel.currentLanguage.collectAsStateWithLifecycle()
             val strings = remember(currentLanguage) { getStringsForLanguage(currentLanguage) }
 
             CompositionLocalProvider(
@@ -98,50 +99,53 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAppScreen(viewModel: MainViewModel) {
-    val currentTab by viewModel.currentTab.collectAsState()
-    val trendingTracks by viewModel.trendingTracks.collectAsState()
-    val recentTracks by viewModel.recentTracks.collectAsState()
-    val downloadedTracks by viewModel.downloadedTracks.collectAsState()
-    val favoriteTracks by viewModel.favoriteTracks.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
-    val playlists by viewModel.playlists.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
-    val isSearching by viewModel.isSearching.collectAsState()
-    val isLoadingTrending by viewModel.isLoadingTrending.collectAsState()
-    val isResolving by viewModel.isResolving.collectAsState()
-    val resolveResult by viewModel.resolveResult.collectAsState()
-    val isFullPlayerVisible by viewModel.isFullPlayerVisible.collectAsState()
-    val selectedPlaylist by viewModel.selectedPlaylist.collectAsState()
-    val selectedPlaylistTracks by viewModel.selectedPlaylistTracks.collectAsState()
-    val favoriteArtists by viewModel.favoriteArtists.collectAsState()
-    val showTastePicker by viewModel.showTastePicker.collectAsState()
-    val currentLyrics by viewModel.currentLyrics.collectAsState()
-    val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsState()
-    val selectedMood by viewModel.selectedMood.collectAsState()
-    val isEconomyMode by viewModel.isEconomyMode.collectAsState()
-    val dislikedTrackIds by viewModel.dislikedTrackIds.collectAsState()
-    val relatedTracks by viewModel.relatedTracks.collectAsState()
+    val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
+    val trendingTracks by viewModel.trendingTracks.collectAsStateWithLifecycle()
+    val recentTracks by viewModel.recentTracks.collectAsStateWithLifecycle()
+    val downloadedTracks by viewModel.downloadedTracks.collectAsStateWithLifecycle()
+    val favoriteTracks by viewModel.favoriteTracks.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
+    val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val searchFailed by viewModel.searchFailed.collectAsStateWithLifecycle()
+    val hasSearched by viewModel.hasSearched.collectAsStateWithLifecycle()
+    val blockedArtists by viewModel.blockedArtists.collectAsStateWithLifecycle()
+    val isLoadingTrending by viewModel.isLoadingTrending.collectAsStateWithLifecycle()
+    val isResolving by viewModel.isResolving.collectAsStateWithLifecycle()
+    val resolveResult by viewModel.resolveResult.collectAsStateWithLifecycle()
+    val isFullPlayerVisible by viewModel.isFullPlayerVisible.collectAsStateWithLifecycle()
+    val selectedPlaylist by viewModel.selectedPlaylist.collectAsStateWithLifecycle()
+    val selectedPlaylistTracks by viewModel.selectedPlaylistTracks.collectAsStateWithLifecycle()
+    val favoriteArtists by viewModel.favoriteArtists.collectAsStateWithLifecycle()
+    val showTastePicker by viewModel.showTastePicker.collectAsStateWithLifecycle()
+    val currentLyrics by viewModel.currentLyrics.collectAsStateWithLifecycle()
+    val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsStateWithLifecycle()
+    val selectedMood by viewModel.selectedMood.collectAsStateWithLifecycle()
+    val isEconomyMode by viewModel.isEconomyMode.collectAsStateWithLifecycle()
+    val dislikedTrackIds by viewModel.dislikedTrackIds.collectAsStateWithLifecycle()
+    val relatedTracks by viewModel.relatedTracks.collectAsStateWithLifecycle()
 
     val playerManager = viewModel.playerManager
-    val currentTrack by playerManager.currentTrack.collectAsState()
-    val isPlaying by playerManager.isPlaying.collectAsState()
-    val isBuffering by playerManager.isBuffering.collectAsState()
-    val currentPosition by playerManager.currentPosition.collectAsState()
-    val duration by playerManager.duration.collectAsState()
-    val queue by playerManager.queue.collectAsState()
-    val isShuffle by playerManager.isShuffle.collectAsState()
-    val repeatMode by playerManager.repeatMode.collectAsState()
-    val sleepTimerRemainingMs by playerManager.sleepTimerRemainingMs.collectAsState()
-    val isSleepTimerEndOfTrack by playerManager.isSleepTimerEndOfTrack.collectAsState()
-    val isEndlessRadioEnabled by playerManager.isEndlessRadioEnabled.collectAsState()
-    val playbackSpeed by playerManager.playbackSpeed.collectAsState()
+    val currentTrack by playerManager.currentTrack.collectAsStateWithLifecycle()
+    val isPlaying by playerManager.isPlaying.collectAsStateWithLifecycle()
+    val isBuffering by playerManager.isBuffering.collectAsStateWithLifecycle()
+    val currentPosition by playerManager.currentPosition.collectAsStateWithLifecycle()
+    val duration by playerManager.duration.collectAsStateWithLifecycle()
+    val queue by playerManager.queue.collectAsStateWithLifecycle()
+    val isShuffle by playerManager.isShuffle.collectAsStateWithLifecycle()
+    val repeatMode by playerManager.repeatMode.collectAsStateWithLifecycle()
+    val sleepTimerRemainingMs by playerManager.sleepTimerRemainingMs.collectAsStateWithLifecycle()
+    val isSleepTimerEndOfTrack by playerManager.isSleepTimerEndOfTrack.collectAsStateWithLifecycle()
+    val isEndlessRadioEnabled by playerManager.isEndlessRadioEnabled.collectAsStateWithLifecycle()
+    val playbackSpeed by playerManager.playbackSpeed.collectAsStateWithLifecycle()
 
     var isSplashVisible by remember { mutableStateOf(true) }
     var showPlayerOptions by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
-    val downloadStates by viewModel.downloadManager.downloadStates.collectAsState()
+    val downloadStates by viewModel.downloadManager.downloadStates.collectAsStateWithLifecycle()
 
     // Android System Back Button Handler
     BackHandler(enabled = isFullPlayerVisible) {
@@ -448,7 +452,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 onSetPlaybackSpeed = { speed -> playerManager.setPlaybackSpeed(speed) },
                 onToggleEconomyMode = { viewModel.toggleEconomyMode() },
                 onOpenLanguagePicker = { showLanguagePicker = true },
-                onDismiss = { showPlayerOptions = false }
+                onDismiss = { showPlayerOptions = false },
+                onHideArtist = currentTrack?.let { track ->
+                    { viewModel.hideArtist(track.artist); showPlayerOptions = false }
+                }
             )
         }
 
