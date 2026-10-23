@@ -50,10 +50,12 @@ fun SettingsScreen(
     onCancelSleepTimer: () -> Unit,
     onOpenLanguagePicker: () -> Unit,
     onOpenTastePicker: () -> Unit,
-    onClearCache: () -> Unit
+    onClearCache: () -> Unit,
+    onLessThisArtistClick: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val currentLang = LocalAppLanguage.current
+    val enhancementStrings = uiEnhancementStrings(currentLang)
     val context = LocalContext.current
     var isCacheClearedMessageVisible by remember { mutableStateOf(false) }
 
@@ -352,7 +354,7 @@ fun SettingsScreen(
                     SettingsRow(
                         icon = Icons.Outlined.FavoriteBorder,
                         title = strings.settingsTasteArtists,
-                        subtitle = if (favoriteArtistsCount > 0) "Выбрано артистов: $favoriteArtistsCount" else strings.settingsTasteArtistsDesc,
+                        subtitle = if (favoriteArtistsCount > 0) enhancementStrings.selectedArtistsCount.format(favoriteArtistsCount) else strings.settingsTasteArtistsDesc,
                         onClick = onOpenTastePicker,
                         trailingContent = {
                             Icon(
@@ -377,7 +379,7 @@ fun SettingsScreen(
                         SettingsRow(
                             icon = Icons.Outlined.FileDownload,
                             title = strings.settingsDownloadedTracks,
-                            subtitle = "$downloadedTracksCount треков в памяти устройства"
+                            subtitle = enhancementStrings.downloadedTracksCount.format(downloadedTracksCount)
                         )
 
                         HorizontalDivider(
