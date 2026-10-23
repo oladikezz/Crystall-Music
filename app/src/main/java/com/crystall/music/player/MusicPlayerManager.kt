@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,9 @@ import kotlinx.coroutines.withContext
 class MusicPlayerManager private constructor(private val context: Context) {
 
     companion object {
+        private const val PLAYBACK_PREFS = "music_player_state"
+        private const val PLAYBACK_STATE_KEY = "session_v1"
+
         @Volatile
         private var instance: MusicPlayerManager? = null
 
@@ -51,6 +55,10 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val dbHelper = MusicDatabaseHelper.getInstance(context)
+    private val playbackPreferences = context.getSharedPreferences(PLAYBACK_PREFS, Context.MODE_PRIVATE)
+    private val restoredPlaybackState = PlaybackSessionStateCodec.decode(
+        playbackPreferences.getString(PLAYBACK_STATE_KEY, null)
+    )
 
     // Hardware wake locks to guarantee continuous playback while screen is off / locked
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -125,9 +133,14 @@ class MusicPlayerManager private constructor(private val context: Context) {
         .setWakeMode(C.WAKE_MODE_NETWORK)
         .build()
 
+    @Volatile
+    private var released = false
+    @Volatile
+    private var lastPersistedPositionMs = Long.MIN_VALUE
+
     var mediaSession: MediaSession? = null
 
-    private val _currentTrack = MutableStateFlow<Track?>(null)
+    private val _currentTrack = MutableStateFlow(restoredPlaybackState?.currentTrack)
     val currentTrack: StateFlow<Track?> = _currentTrack.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
@@ -136,20 +149,20 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val _isBuffering = MutableStateFlow(false)
     val isBuffering: StateFlow<Boolean> = _isBuffering.asStateFlow()
 
-    private val _currentPosition = MutableStateFlow(0L)
+    private val _currentPosition = MutableStateFlow(restoredPlaybackState?.positionMs ?: 0L)
     val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
 
     private val _duration = MutableStateFlow(0L)
     val duration: StateFlow<Long> = _duration.asStateFlow()
 
-    private val _queue = MutableStateFlow<List<Track>>(emptyList())
+    private val _queue = MutableStateFlow(restoredPlaybackState?.queue ?: emptyList())
     val queue: StateFlow<List<Track>> = _queue.asStateFlow()
 
-    private val _isShuffle = MutableStateFlow(false)
+    private val _isShuffle = MutableStateFlow(restoredPlaybackState?.isShuffle ?: false)
     val isShuffle: StateFlow<Boolean> = _isShuffle.asStateFlow()
 
     // 0 = Repeat OFF, 1 = Repeat ALL, 2 = Repeat ONE
-    private val _repeatMode = MutableStateFlow(0)
+    private val _repeatMode = MutableStateFlow(restoredPlaybackState?.repeatMode ?: 0)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
 
     private val _sleepTimerRemainingMs = MutableStateFlow<Long?>(null)
@@ -158,10 +171,10 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private val _isSleepTimerEndOfTrack = MutableStateFlow(false)
     val isSleepTimerEndOfTrack: StateFlow<Boolean> = _isSleepTimerEndOfTrack.asStateFlow()
 
-    private val _isEndlessRadioEnabled = MutableStateFlow(true)
+    private val _isEndlessRadioEnabled = MutableStateFlow(restoredPlaybackState?.isEndlessRadioEnabled ?: true)
     val isEndlessRadioEnabled: StateFlow<Boolean> = _isEndlessRadioEnabled.asStateFlow()
 
-    private val _playbackSpeed = MutableStateFlow(1.0f)
+    private val _playbackSpeed = MutableStateFlow(restoredPlaybackState?.playbackSpeed ?: 1.0f)
     val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
 
     private val _isEconomyMode = MutableStateFlow(dbHelper.isEconomyMode())
@@ -178,6 +191,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
     private var preloadJob: Job? = null
 
     init {
+        player.setPlaybackParameters(PlaybackParameters(_playbackSpeed.value))
         try {
             val sessionIntent = Intent(context, com.crystall.music.ui.MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -206,6 +220,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     stopProgressTracker()
                     releaseWakeLocksIfIdle()
                 }
+                persistPlaybackState(force = true)
                 com.crystall.music.widget.CrystallMusicWidgetProvider.updateAllWidgets(context)
             }
 
@@ -214,6 +229,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 if (playbackState == Player.STATE_READY) {
                     consecutiveErrorCount = 0
                     _duration.value = player.duration.coerceAtLeast(0L)
+                    persistPlaybackState(force = true)
                 } else if (playbackState == Player.STATE_ENDED) {
                     acquireWakeLocks(45000L)
                     onTrackEnded()
@@ -244,9 +260,8 @@ class MusicPlayerManager private constructor(private val context: Context) {
         } catch (_: Exception) {}
     }
 
-    fun playTrack(track: Track, newQueue: List<Track>? = null) {
-        acquireWakeLocks(45000L)
-        startPlaybackService()
+    fun playTrack(track: Track, newQueue: List<Track>? = null, startPositionMs: Long = 0L) {
+        if (released) return
 
         if (newQueue != null && newQueue.isNotEmpty()) {
             _queue.value = newQueue
@@ -256,8 +271,20 @@ class MusicPlayerManager private constructor(private val context: Context) {
 
         _currentTrack.value = track
         _isBuffering.value = true
-        _currentPosition.value = 0L
+        val resumePosition = startPositionMs.coerceAtLeast(0L)
+            .let { if (track.durationMs > 0L) it.coerceAtMost(track.durationMs) else it }
+        _currentPosition.value = resumePosition
         _duration.value = 0L
+        persistPlaybackState(positionMs = resumePosition, force = true)
+
+        if (track.id.startsWith("unavailable_")) {
+            _isBuffering.value = false
+            skipNext()
+            return
+        }
+
+        acquireWakeLocks(45000L)
+        startPlaybackService()
 
         // Auto-populate radio queue if queue is very short (e.g. single tapped track)
         if (_isEndlessRadioEnabled.value && _queue.value.size <= 2) {
@@ -336,7 +363,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 withContext(Dispatchers.Main) {
                     if (_currentTrack.value?.id != track.id) return@withContext
                     // Seamless setMediaItem without clearing/stopping to keep foreground service alive
-                    player.setMediaItem(mediaItem, true)
+                    player.setMediaItem(mediaItem, resumePosition)
                     player.prepare()
                     player.playWhenReady = true
                     player.play()
