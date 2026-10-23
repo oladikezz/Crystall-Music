@@ -14,18 +14,17 @@ sealed class ResolveResult {
 
 object UniversalMusicResolver {
 
-    private fun isSoundCloudUrl(url: String): Boolean =
-        url.contains("soundcloud.com", ignoreCase = true)
-
     suspend fun resolve(input: String): ResolveResult = withContext(Dispatchers.IO) {
         val trimmed = input.trim()
         if (trimmed.isBlank()) {
             return@withContext ResolveResult.Error("Введите ссылку на трек или плейлист")
         }
 
-        // 0. SoundCloud URL
-        if (isSoundCloudUrl(trimmed)) {
-            val scResult = SoundCloudEngine.resolveUrl(trimmed)
+        val parsedLink = MusicImportUrlParser.parse(trimmed)
+
+        // Resolve only explicitly recognized first-party music hosts. Other text remains searchable.
+        if (parsedLink?.provider == ImportProvider.SOUNDCLOUD) {
+            val scResult = SoundCloudEngine.resolveUrl(parsedLink.url)
             if (scResult != null) {
                 val (playlist, tracks) = scResult
                 return@withContext if (playlist != null) {
@@ -40,16 +39,16 @@ object UniversalMusicResolver {
         }
 
         // 1. Check if YouTube Playlist URL
-        val ytPlaylistId = YouTubeEngine.extractPlaylistId(trimmed)
+        val ytPlaylistId = parsedLink?.playlistId ?: YouTubeEngine.extractPlaylistId(trimmed)
         if (ytPlaylistId != null) {
-            val ytResult = YouTubeEngine.resolvePlaylist(trimmed)
+            val ytResult = YouTubeEngine.resolvePlaylist(parsedLink?.url ?: trimmed)
             if (ytResult != null) {
                 return@withContext ResolveResult.PlaylistResult(ytResult.first, ytResult.second)
             }
         }
 
         // 2. Check if YouTube Video URL
-        val ytVideoId = YouTubeEngine.extractVideoId(trimmed)
+        val ytVideoId = parsedLink?.videoId ?: YouTubeEngine.extractVideoId(trimmed)
         if (ytVideoId != null) {
             // Fetch real metadata if possible, or create track
             val searchResults = YouTubeEngine.search(ytVideoId)
