@@ -16,6 +16,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.crystall.music.ui.i18n.LocalAppLanguage
+import com.crystall.music.ui.i18n.searchStrings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +48,7 @@ private data class ExploreGenre(
 /**
  * 1:1 YouTube Music Clean Light Search Screen
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     currentTrack: Track?,
@@ -56,10 +60,15 @@ fun SearchScreen(
     onSearch: (String) -> Unit,
     onTrackClick: (Track, List<Track>) -> Unit,
     onDownloadClick: (Track) -> Unit,
-    onFavoriteClick: (Track) -> Unit
+    onFavoriteClick: (Track) -> Unit,
+    hasSearched: Boolean = false,
+    searchFailed: Boolean = false,
+    onRetry: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
-    var searchQuery by remember { mutableStateOf("") }
+    val labels = searchStrings(LocalAppLanguage.current)
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var selectedArtist by rememberSaveable { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
     var selectedFilter by remember { mutableStateOf("all") }
 
@@ -106,7 +115,7 @@ fun SearchScreen(
         ) {
             TextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = { searchQuery = it; onSearch(it) },
                 placeholder = {
                     Text(
                         strings.searchPlaceholder,
@@ -124,7 +133,7 @@ fun SearchScreen(
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = { searchQuery = ""; onSearch("") }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Clear",
@@ -207,7 +216,15 @@ fun SearchScreen(
                     modifier = Modifier.size(36.dp)
                 )
             }
-        } else if (searchResults.isEmpty() && searchQuery.isNotBlank()) {
+        } else if (searchFailed) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(labels.error, color = LightTextPrimary)
+                TextButton(onClick = onRetry) { Text(labels.retry) }
+            }
+        } else if (searchResults.isEmpty() && hasSearched) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -487,6 +504,15 @@ fun SearchScreen(
                             onFavoriteClick = { onFavoriteClick(track) }
                         )
                     }
+                } else if (selectedFilter == "artists") {
+                    items(displayedTracks, key = { it.artist.lowercase() }) { track ->
+                        ListItem(
+                            headlineContent = { Text(track.artist) },
+                            supportingContent = { Text(strings.searchFilterArtists) },
+                            leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
+                            modifier = Modifier.clickable { selectedArtist = track.artist }
+                        )
+                    }
                 } else {
                     items(displayedTracks) { track ->
                         TrackItem(
@@ -504,4 +530,32 @@ fun SearchScreen(
             }
         }
     }
+    selectedArtist?.let { artist ->
+        val tracks = searchResults.filter { it.artist.equals(artist, ignoreCase = true) }
+        ModalBottomSheet(onDismissRequest = { selectedArtist = null }, containerColor = LightSurface) {
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(artist, style = MaterialTheme.typography.headlineSmall)
+                TextButton(onClick = {
+                    searchQuery = artist
+                    selectedArtist = null
+                    onSearch(artist)
+                }) { Text(labels.artistTracks) }
+                LazyColumn(Modifier.heightIn(max = 400.dp)) {
+                    items(tracks, key = { it.id }) { track ->
+                        TrackItem(
+                            track = track,
+                            isCurrentTrack = currentTrack?.id == track.id,
+                            isPlaying = isPlaying && currentTrack?.id == track.id,
+                            downloadProgress = downloadStates[track.id],
+                            isFavorite = track.id in favoriteIds,
+                            onTrackClick = { onTrackClick(track, tracks) },
+                            onDownloadClick = { onDownloadClick(track) },
+                            onFavoriteClick = { onFavoriteClick(track) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
 }
