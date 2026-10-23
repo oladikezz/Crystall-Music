@@ -132,3 +132,36 @@ cd Crystall-Music
 <div align="center">
 Made with  aesthetics for pure musical enjoyment.
 </div>
+## Development and reliability checks
+
+Use JDK 17 or 21 and Android SDK Platform 35 / Build Tools 35.0.0. The project
+uses the selected `JAVA_HOME`; no machine-specific Java path is required.
+With the SDK tools and Google SDK licenses explicitly approved, the optional
+project-local setup is:
+
+```sh
+ACCEPT_ANDROID_LICENSES=1 bash scripts/setup-android.sh
+bash gradlew assembleDebug testDebugUnitTest lintDebug
+```
+
+The setup pins SDK archives and verifies their checksums; `.android-sdk/` and
+`local.properties` are ignored. GitHub Actions runs the same build, unit tests,
+and lint checks. Tests cover additive database migrations, playlist replacement,
+offline file handling, search cancellation, import URLs, and playback snapshots.
+
+For an explicitly approved local emulator installation, run
+`scripts/setup-emulator.sh` (Emulator 36.5.11, API 35 Google APIs x86_64 r9).
+Hardware acceleration is recommended; some sandboxes cannot boot this image.
+
+### Library and playback
+
+- Library search and sorting apply to downloads, favorites and saved playlists.
+  Open a playlist to rename it or remove tracks without deleting the audio file.
+- The offline center shows stored audio size, free storage, and interrupted or
+  failed downloads. Retry restarts the download; cancellation cleans partial
+  files. Wi-Fi-only mode can be enabled there.
+- Download tasks are not an Android system background job: after process death,
+  interrupted tasks are offered for manual retry rather than silently resumed.
+- The last queue and position are restored paused, without unexpected autoplay.
+- Hide an artist from recommendations in the player options or settings;
+  manually searching for that artist remains available.
