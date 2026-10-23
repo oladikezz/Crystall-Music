@@ -50,11 +50,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
 
-    private val _searchResults = MutableStateFlow<List<Track>>(emptyList())
-    val searchResults: StateFlow<List<Track>> = _searchResults.asStateFlow()
-
-    private val _isSearching = MutableStateFlow(false)
-    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+    private val trackSearch = TrackSearch(viewModelScope, YouTubeEngine::searchOrThrow)
+    val searchResults = trackSearch.results
+    val isSearching = trackSearch.isSearching
+    val searchFailed = trackSearch.failed
+    val hasSearched = trackSearch.hasSearched
 
     private val _isLoadingTrending = MutableStateFlow(false)
     val isLoadingTrending: StateFlow<Boolean> = _isLoadingTrending.asStateFlow()
@@ -100,6 +100,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var lyricsJob: Job? = null
     private var relatedJob: Job? = null
+    private var recommendationsJob: Job? = null
+    private val _blockedArtists = MutableStateFlow(dbHelper.getBlockedArtists())
+    val blockedArtists = _blockedArtists.asStateFlow()
+
+    private fun filterRecommendations(tracks: List<Track>): List<Track> = tracks.filter { track ->
+        track.id !in dislikedTrackIds.value &&
+            _blockedArtists.value.none { it.equals(track.artist, ignoreCase = true) }
+    }
+
+    fun hideArtist(artist: String) {
+        if (artist.isBlank()) return
+        _blockedArtists.value = _blockedArtists.value + artist
+        _trendingTracks.value = filterRecommendations(_trendingTracks.value)
+        _relatedTracks.value = filterRecommendations(_relatedTracks.value)
+        viewModelScope.launch(Dispatchers.IO) { dbHelper.setBlockedArtists(_blockedArtists.value) }
+    }
+
+    fun resetHiddenArtists() {
+        _blockedArtists.value = emptySet()
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.setBlockedArtists(emptySet())
+            loadTrendingTracks()
+        }
+    }
 
     init {
         refreshLibraryData()
@@ -123,8 +147,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 YouTubeEngine.getTrendingMusic()
             }
-            if (tracks.isNotEmpty()) {
-                playerManager.playTrack(tracks.first(), tracks)
+            val recommendations = filterRecommendations(tracks)
+            if (recommendations.isNotEmpty()) {
+                playerManager.playTrack(recommendations.first(), recommendations)
                 playerManager.setEndlessRadio(true)
                 showFullPlayer()
             }
@@ -136,19 +161,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectMood(mood: String) {
         _selectedMood.value = mood
-        viewModelScope.launch(Dispatchers.IO) {
-            _isLoadingTrending.value = true
-            val isAll = mood == "Все" || mood.equals("all", ignoreCase = true)
-            val tracks = if (isAll) {
-                val favs = _favoriteArtists.value
-                if (favs.isNotEmpty()) YouTubeEngine.getPersonalizedRecommendations(favs)
-                else YouTubeEngine.getTrendingMusic()
-            } else {
-                YouTubeEngine.getMoodTracks(mood)
-            }
-            _trendingTracks.value = tracks
-            _isLoadingTrending.value = false
-        }
+        loadTrendingTracks()
     }
 
     private fun loadFavoriteArtists() {
@@ -234,27 +247,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadTrendingTracks() {
-        viewModelScope.launch(Dispatchers.IO) {
+        recommendationsJob?.cancel()
+        recommendationsJob = viewModelScope.launch(Dispatchers.IO) {
             _isLoadingTrending.value = true
-            val favs = _favoriteArtists.value
-            val tracks = if (favs.isNotEmpty()) {
-                YouTubeEngine.getPersonalizedRecommendations(favs)
-            } else {
-                YouTubeEngine.getTrendingMusic()
+            try {
+                val mood = _selectedMood.value
+                val favs = _favoriteArtists.value
+                val tracks = when {
+                    mood != "Все" && !mood.equals("all", ignoreCase = true) -> YouTubeEngine.getMoodTracks(mood)
+                    favs.isNotEmpty() -> YouTubeEngine.getPersonalizedRecommendations(favs)
+                    else -> YouTubeEngine.getTrendingMusic()
+                }
+                _trendingTracks.value = filterRecommendations(tracks)
+            } finally {
+                _isLoadingTrending.value = false
             }
-            _trendingTracks.value = tracks
-            _isLoadingTrending.value = false
         }
     }
 
-    fun search(query: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _isSearching.value = true
-            val list = YouTubeEngine.search(query)
-            _searchResults.value = list
-            _isSearching.value = false
-        }
-    }
+    fun search(query: String) = trackSearch.submit(query)
+    fun retrySearch() = trackSearch.retry()
 
     fun resolveUrl(url: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -315,6 +327,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             dbHelper.deletePlaylist(playlist.id)
             refreshLibraryData()
             closePlaylistDetail()
+        }
+    }
+
+    fun renamePlaylist(playlist: Playlist, title: String) {
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.renamePlaylist(playlist.id, title.trim())
+            _selectedPlaylist.value = playlist.copy(title = title.trim())
+            refreshLibraryData()
+        }
+    }
+
+    fun removeTrackFromPlaylist(playlist: Playlist, track: Track) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.removeTrackFromPlaylist(playlist.id, track.id)
+            val tracks = dbHelper.getPlaylistTracks(playlist.id)
+            _selectedPlaylistTracks.value = tracks
+            _selectedPlaylist.value = playlist.copy(trackCount = tracks.size)
+            refreshLibraryData()
         }
     }
 
