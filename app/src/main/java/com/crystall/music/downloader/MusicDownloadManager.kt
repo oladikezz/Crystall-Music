@@ -391,7 +391,7 @@ class MusicDownloadManager internal constructor(private val context: Context) {
                         throw IOException("Загрузка завершилась с неполным размером файла")
                     }
                     coroutineContext.ensureActive()
-                    Os.rename(partialFile.absolutePath, targetFile.absolutePath)
+                    promotePartialFile(partialFile, targetFile)
                     dbHelper.markTrackDownloaded(track.id, targetFile.absolutePath)
                     removeRecoveryMetadata(track.id)
                     updateProgress(
@@ -506,6 +506,34 @@ class MusicDownloadManager internal constructor(private val context: Context) {
     private fun updateProgressIfActive(trackId: String, progress: DownloadProgress) {
         synchronized(stateLock) {
             if (activeJobs[trackId]?.isActive == true) updateProgress(trackId, progress)
+        }
+    }
+
+    private fun promotePartialFile(partialFile: File, targetFile: File) {
+        if (targetFile.exists()) targetFile.delete()
+        if (partialFile.renameTo(targetFile)) return
+        try {
+            java.nio.file.Files.move(
+                partialFile.toPath(),
+                targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE
+            )
+            return
+        } catch (_: Exception) {}
+        try {
+            java.nio.file.Files.move(
+                partialFile.toPath(),
+                targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            return
+        } catch (_: Exception) {}
+        try {
+            Os.rename(partialFile.absolutePath, targetFile.absolutePath)
+        } catch (_: Exception) {}
+        if (!targetFile.exists() && partialFile.exists()) {
+            throw IOException("Не удалось переместить временный файл загрузки в целевой файл")
         }
     }
 

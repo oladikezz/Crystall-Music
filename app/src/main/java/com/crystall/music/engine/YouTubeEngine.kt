@@ -104,61 +104,69 @@ object YouTubeEngine {
         return true
     }
 
-    suspend fun search(query: String, songsOnly: Boolean = true): List<Track> = withContext(Dispatchers.IO) {
+    suspend fun searchOrThrow(query: String): List<Track> = searchOrThrow(query, songsOnly = true)
+
+    suspend fun searchOrThrow(query: String, songsOnly: Boolean): List<Track> = withContext(Dispatchers.IO) {
         val tracks = mutableListOf<Track>()
-        try {
-            val visitorId = getVisitorData()
-            val paramsField = if (songsOnly) ",\"params\": \"EgWKAQIIAWoKEAkQChAFEAMQBA%3D%3D\"" else ""
-            val jsonPayload = """
-                {
-                    "context": {
-                        "client": {
-                            "clientName": "WEB_REMIX",
-                            "clientVersion": "1.20240901.01.00",
-                            "hl": "ru",
-                            "gl": "RU",
-                            "visitorData": "$visitorId"
-                        }
-                    },
-                    "query": ${escapeJson(query)}
-                    $paramsField
-                }
-            """.trimIndent()
-
-            val request = Request.Builder()
-                .url("https://music.youtube.com/youtubei/v1/search")
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .header("Content-Type", "application/json")
-                .header("Origin", "https://music.youtube.com")
-                .header("Referer", "https://music.youtube.com/")
-                .post(jsonPayload.toRequestBody(JSON_MEDIA))
-                .build()
-
-            val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext emptyList()
-            val body = response.body?.string() ?: return@withContext emptyList()
-
-            val root = JsonParser.parseString(body).asJsonObject
-            val newVis = root.getAsJsonObject("responseContext")?.get("visitorData")?.asString
-            if (!newVis.isNullOrBlank()) {
-                try {
-                    cachedVisitorData = java.net.URLDecoder.decode(newVis, "UTF-8")
-                } catch (_: Exception) {}
-            }
-            val items = mutableListOf<JsonObject>()
-            findJsonObjects(root, "musicResponsiveListItemRenderer", items)
-
-            for (item in items) {
-                parseTrackItem(item)?.let {
-                    if (isAcceptableTrack(it)) {
-                        tracks.add(it)
+        val visitorId = getVisitorData()
+        val paramsField = if (songsOnly) ",\"params\": \"EgWKAQIIAWoKEAkQChAFEAMQBA%3D%3D\"" else ""
+        val jsonPayload = """
+            {
+                "context": {
+                    "client": {
+                        "clientName": "WEB_REMIX",
+                        "clientVersion": "1.20240901.01.00",
+                        "hl": "ru",
+                        "gl": "RU",
+                        "visitorData": "$visitorId"
                     }
+                },
+                "query": ${escapeJson(query)}
+                $paramsField
+            }
+        """.trimIndent()
+
+        val request = Request.Builder()
+            .url("https://music.youtube.com/youtubei/v1/search")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .header("Content-Type", "application/json")
+            .header("Origin", "https://music.youtube.com")
+            .header("Referer", "https://music.youtube.com/")
+            .post(jsonPayload.toRequestBody(JSON_MEDIA))
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            throw java.io.IOException("YouTube search failed with HTTP ${response.code}")
+        }
+        val body = response.body?.string() ?: throw java.io.IOException("Empty response body from YouTube search")
+
+        val root = JsonParser.parseString(body).asJsonObject
+        val newVis = root.getAsJsonObject("responseContext")?.get("visitorData")?.asString
+        if (!newVis.isNullOrBlank()) {
+            try {
+                cachedVisitorData = java.net.URLDecoder.decode(newVis, "UTF-8")
+            } catch (_: Exception) {}
+        }
+        val items = mutableListOf<JsonObject>()
+        findJsonObjects(root, "musicResponsiveListItemRenderer", items)
+
+        for (item in items) {
+            parseTrackItem(item)?.let {
+                if (isAcceptableTrack(it)) {
+                    tracks.add(it)
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
         tracks
+    }
+
+    suspend fun search(query: String, songsOnly: Boolean = true): List<Track> {
+        return try {
+            searchOrThrow(query, songsOnly)
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     suspend fun getTrendingMusic(): List<Track> = withContext(Dispatchers.IO) {

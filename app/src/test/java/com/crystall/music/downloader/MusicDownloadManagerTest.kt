@@ -30,6 +30,9 @@ class MusicDownloadManagerTest {
 
     @Before fun setUp() {
         context = RuntimeEnvironment.getApplication()
+        clearSingleton()
+        context.deleteDatabase("crystall_music.db")
+        context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.listFiles()?.forEach { it.delete() }
         context.getSharedPreferences("music_download_recovery", Context.MODE_PRIVATE).edit().clear().commit()
         server = MockWebServer().also { it.start() }
         manager = MusicDownloadManager(context)
@@ -37,6 +40,16 @@ class MusicDownloadManagerTest {
 
     @After fun tearDown() {
         server.shutdown()
+        clearSingleton()
+        context.deleteDatabase("crystall_music.db")
+        context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.listFiles()?.forEach { it.delete() }
+    }
+
+    private fun clearSingleton() {
+        val field = MusicDatabaseHelper::class.java.getDeclaredField("instance")
+        field.isAccessible = true
+        (field.get(null) as? MusicDatabaseHelper)?.close()
+        field.set(null, null)
     }
 
     private fun track(id: String) = Track(
