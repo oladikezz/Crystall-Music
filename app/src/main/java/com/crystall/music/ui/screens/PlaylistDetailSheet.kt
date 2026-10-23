@@ -9,12 +9,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +25,7 @@ import com.crystall.music.data.model.Playlist
 import com.crystall.music.data.model.Track
 import com.crystall.music.downloader.DownloadProgress
 import com.crystall.music.ui.components.TrackItem
+import com.crystall.music.ui.i18n.LocalAppLanguage
 import com.crystall.music.ui.i18n.LocalStrings
 import com.crystall.music.ui.theme.*
 
@@ -42,9 +45,14 @@ fun PlaylistDetailSheet(
     onTrackClick: (Track, List<Track>) -> Unit,
     onDownloadClick: (Track) -> Unit,
     onFavoriteClick: (Track) -> Unit,
-    onDownloadAll: (List<Track>) -> Unit
+    onDownloadAll: (List<Track>) -> Unit,
+    onRenamePlaylist: (String) -> Unit = {},
+    onRemoveTrack: (Track) -> Unit = {}
 ) {
     val strings = LocalStrings.current
+    val labels = uiEnhancementStrings(LocalAppLanguage.current)
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var playlistName by remember(playlist.id, playlist.title) { mutableStateOf(playlist.title) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -111,6 +119,15 @@ fun PlaylistDetailSheet(
                         maxLines = 1
                     )
                 }
+                IconButton(
+                    onClick = {
+                        playlistName = playlist.title
+                        showRenameDialog = true
+                    },
+                    modifier = Modifier.semantics { contentDescription = "${labels.renamePlaylist}: ${playlist.title}" }
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = LightTextSecondary)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -162,18 +179,55 @@ fun PlaylistDetailSheet(
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 items(tracks) { track ->
-                    TrackItem(
-                        track = track,
-                        isCurrentTrack = currentTrack?.id == track.id,
-                        isPlaying = isPlaying && currentTrack?.id == track.id,
-                        downloadProgress = downloadStates[track.id],
-                        isFavorite = favoriteIds.contains(track.id),
-                        onTrackClick = { onTrackClick(track, tracks) },
-                        onDownloadClick = { onDownloadClick(track) },
-                        onFavoriteClick = { onFavoriteClick(track) }
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) {
+                            TrackItem(
+                                track = track,
+                                isCurrentTrack = currentTrack?.id == track.id,
+                                isPlaying = isPlaying && currentTrack?.id == track.id,
+                                downloadProgress = downloadStates[track.id],
+                                isFavorite = favoriteIds.contains(track.id),
+                                onTrackClick = { onTrackClick(track, tracks) },
+                                onDownloadClick = { onDownloadClick(track) },
+                                onFavoriteClick = { onFavoriteClick(track) }
+                            )
+                        }
+                        IconButton(
+                            onClick = { onRemoveTrack(track) },
+                            modifier = Modifier.semantics { contentDescription = "${labels.removeTrack}: ${track.title}" }
+                        ) {
+                            Icon(Icons.Default.RemoveCircleOutline, contentDescription = null, tint = LightTextSecondary)
+                        }
+                    }
                 }
             }
+        }
+
+        if (showRenameDialog) {
+            AlertDialog(
+                onDismissRequest = { showRenameDialog = false },
+                title = { Text(labels.renamePlaylist) },
+                text = {
+                    OutlinedTextField(
+                        value = playlistName,
+                        onValueChange = { playlistName = it },
+                        label = { Text(labels.playlistName) },
+                        singleLine = true
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onRenamePlaylist(playlistName.trim())
+                            showRenameDialog = false
+                        },
+                        enabled = playlistName.isNotBlank()
+                    ) { Text(labels.save) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRenameDialog = false }) { Text(labels.cancel) }
+                }
+            )
         }
     }
 }
