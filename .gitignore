@@ -12,3 +12,5 @@ Captures/
 .externalNativeBuild/
 .cxx/
 .kotlin/
+
+.android-sdk/
