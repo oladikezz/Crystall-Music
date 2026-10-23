@@ -30,8 +30,7 @@ object YouTubeEngine {
     @Volatile
     private var lastFetchTime: Long = 0L
 
-    // In-memory stream URL cache: videoId -> (url, expiryTimestamp)
-    private val streamUrlCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Long>>()
+    private val streamUrlCache = java.util.concurrent.ConcurrentHashMap<YouTubeStreamCacheKey, Pair<String, Long>>()
 
     suspend fun getVisitorData(): String = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
@@ -267,14 +266,15 @@ object YouTubeEngine {
 
     suspend fun getAudioStreamUrl(videoId: String, isEconomyMode: Boolean = true): String? = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
-        val cached = streamUrlCache[videoId]
+        val cacheKey = YouTubeStreamCacheKey(videoId, isEconomyMode)
+        val cached = streamUrlCache[cacheKey]
         if (cached != null && now < cached.second) {
             return@withContext cached.first
         }
 
         val url = fetchAudioStreamUrl(videoId, isEconomyMode)
         if (!url.isNullOrBlank()) {
-            streamUrlCache[videoId] = Pair(url, now + 3 * 3600 * 1000L)
+            streamUrlCache[cacheKey] = Pair(url, now + 3 * 3600 * 1000L)
             return@withContext url
         }
         null
