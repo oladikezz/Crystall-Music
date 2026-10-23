@@ -30,8 +30,7 @@ object YouTubeEngine {
     @Volatile
     private var lastFetchTime: Long = 0L
 
-    // In-memory stream URL cache: videoId -> (url, expiryTimestamp)
-    private val streamUrlCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Long>>()
+    private val streamUrlCache = java.util.concurrent.ConcurrentHashMap<YouTubeStreamCacheKey, Pair<String, Long>>()
 
     suspend fun getVisitorData(): String = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
@@ -239,12 +238,28 @@ object YouTubeEngine {
                 }
             }
 
-            val items = mutableListOf<JsonObject>()
-            findJsonObjects(root, "musicResponsiveListItemRenderer", items)
-
             val tracks = mutableListOf<Track>()
-            for (item in items) {
-                parseTrackItem(item)?.let { tracks.add(it) }
+            val seenTrackIds = mutableSetOf<String>()
+            var itemOrdinal = 0
+            fun appendPage(page: JsonObject) {
+                val items = mutableListOf<JsonObject>()
+                findJsonObjects(page, "musicResponsiveListItemRenderer", items)
+                for (item in items) {
+                    val track = parseTrackItem(item, "unavailable_yt_$itemOrdinal")
+                    itemOrdinal++
+                    if (track != null && seenTrackIds.add(track.id)) tracks.add(track)
+                }
+            }
+            appendPage(root)
+
+            var continuation = findContinuationToken(root)
+            val seenContinuations = mutableSetOf<String>()
+            var pageCount = 0
+            while (!continuation.isNullOrBlank() && pageCount < 20 && seenContinuations.add(continuation)) {
+                val page = fetchPlaylistContinuation(continuation) ?: break
+                appendPage(page)
+                continuation = findContinuationToken(page)
+                pageCount++
             }
 
             if (tracks.isEmpty() && coverUrl == null) return@withContext null
@@ -267,14 +282,15 @@ object YouTubeEngine {
 
     suspend fun getAudioStreamUrl(videoId: String, isEconomyMode: Boolean = true): String? = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
-        val cached = streamUrlCache[videoId]
+        val cacheKey = YouTubeStreamCacheKey(videoId, isEconomyMode)
+        val cached = streamUrlCache[cacheKey]
         if (cached != null && now < cached.second) {
             return@withContext cached.first
         }
 
         val url = fetchAudioStreamUrl(videoId, isEconomyMode)
         if (!url.isNullOrBlank()) {
-            streamUrlCache[videoId] = Pair(url, now + 3 * 3600 * 1000L)
+            streamUrlCache[cacheKey] = Pair(url, now + 3 * 3600 * 1000L)
             return@withContext url
         }
         null
@@ -481,25 +497,22 @@ object YouTubeEngine {
     }
 
     fun extractPlaylistId(urlOrId: String): String? {
-        if (!urlOrId.contains("http") && (urlOrId.startsWith("PL") || urlOrId.startsWith("RD") || urlOrId.startsWith("VL"))) {
-            return urlOrId
-        }
-        val matcher = Pattern.compile("[?&]list=([a-zA-Z0-9_-]+)").matcher(urlOrId)
-        return if (matcher.find()) matcher.group(1) else null
+        val value = urlOrId.trim()
+        if (Regex("(?:PL|RD|VL)[A-Za-z0-9_-]{2,}").matches(value)) return value
+        return MusicImportUrlParser.parse(value)
+            ?.takeIf { it.provider == ImportProvider.YOUTUBE }
+            ?.playlistId
     }
 
     fun extractVideoId(urlOrId: String): String? {
-        if (!urlOrId.contains("http") && urlOrId.length == 11) {
-            return urlOrId
-        }
-        val p1 = Pattern.compile("(?:v=|/v/|youtu\\.be/|/embed/|/watch\\?v=)([a-zA-Z0-9_-]{11})").matcher(urlOrId)
-        if (p1.find()) return p1.group(1)
-        val p2 = Pattern.compile("music\\.youtube\\.com/watch\\?v=([a-zA-Z0-9_-]{11})").matcher(urlOrId)
-        if (p2.find()) return p2.group(1)
-        return null
+        val value = urlOrId.trim()
+        if (Regex("[A-Za-z0-9_-]{11}").matches(value)) return value
+        return MusicImportUrlParser.parse(value)
+            ?.takeIf { it.provider == ImportProvider.YOUTUBE }
+            ?.videoId
     }
 
-    private fun parseTrackItem(item: JsonObject): Track? {
+    private fun parseTrackItem(item: JsonObject, unavailableId: String? = null): Track? {
         try {
             // 1. Extract videoId robustly
             var videoId = item.getAsJsonObject("playlistItemData")?.get("videoId")?.asString
@@ -542,7 +555,7 @@ object YouTubeEngine {
             }
 
             // If still no videoId, skip (it is likely an album or artist card, not a playable track)
-            if (videoId.isNullOrBlank()) return null
+            if (videoId.isNullOrBlank() && unavailableId == null) return null
 
             val flexCols = item.getAsJsonArray("flexColumns") ?: return null
             if (flexCols.size() == 0) return null
@@ -598,7 +611,7 @@ object YouTubeEngine {
             }
 
             // Thumbnail
-            var coverUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+            var coverUrl = videoId?.let { "https://i.ytimg.com/vi/$it/hqdefault.jpg" }.orEmpty()
             val thumbs = item.getAsJsonObject("thumbnail")
                 ?.getAsJsonObject("musicThumbnailRenderer")
                 ?.getAsJsonObject("thumbnail")
@@ -608,7 +621,7 @@ object YouTubeEngine {
             }
 
             return Track(
-                id = videoId,
+                id = videoId ?: unavailableId ?: return null,
                 title = title.trim(),
                 artist = artist.trim(),
                 durationMs = durationMs,
