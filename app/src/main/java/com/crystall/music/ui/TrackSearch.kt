@@ -24,12 +24,13 @@ class TrackSearch(
     val hasSearched = _hasSearched.asStateFlow()
     private var job: Job? = null
     private var generation = 0L
-    private var query = ""
+    private val _query = MutableStateFlow("")
+    val query = _query.asStateFlow()
 
     fun submit(value: String, immediately: Boolean = false) {
-        query = value.trim()
+        _query.value = value
         val request = ++generation
-        val requestedQuery = query
+        val requestedQuery = value.trim()
         job?.cancel()
         _failed.value = false
         _results.value = emptyList()
@@ -51,5 +52,5 @@ class TrackSearch(
         }
     }
 
-    fun retry() = submit(query, immediately = true)
+    fun retry() = submit(_query.value, immediately = true)
 }
