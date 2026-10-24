@@ -51,6 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
 
     private val trackSearch = TrackSearch(viewModelScope, YouTubeEngine::searchOrThrow)
+    val searchQuery = trackSearch.query
     val searchResults = trackSearch.results
     val isSearching = trackSearch.isSearching
     val searchFailed = trackSearch.failed

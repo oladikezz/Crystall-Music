@@ -55,6 +55,7 @@ fun SearchScreen(
     isPlaying: Boolean,
     downloadStates: Map<String, DownloadProgress>,
     favoriteIds: Set<String>,
+    searchQuery: String,
     searchResults: List<Track>,
     isSearching: Boolean,
     onSearch: (String) -> Unit,
@@ -67,7 +68,6 @@ fun SearchScreen(
 ) {
     val strings = LocalStrings.current
     val labels = searchStrings(LocalAppLanguage.current)
-    var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedArtist by rememberSaveable { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
     var selectedFilter by remember { mutableStateOf("all") }
@@ -115,7 +115,7 @@ fun SearchScreen(
         ) {
             TextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it; onSearch(it) },
+                onValueChange = onSearch,
                 placeholder = {
                     Text(
                         strings.searchPlaceholder,
@@ -133,7 +133,7 @@ fun SearchScreen(
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = ""; onSearch("") }) {
+                        IconButton(onClick = { onSearch("") }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Clear",
@@ -273,7 +273,6 @@ fun SearchScreen(
                                         .clip(RoundedCornerShape(999.dp))
                                         .background(LightChipBackground)
                                         .clickable {
-                                            searchQuery = tag
                                             focusManager.clearFocus()
                                             onSearch(tag)
                                         }
@@ -321,7 +320,6 @@ fun SearchScreen(
                                     .background(LightSurfaceElevated)
                                     .border(0.5.dp, LightBorder, RoundedCornerShape(8.dp))
                                     .clickable {
-                                        searchQuery = genre.name
                                         focusManager.clearFocus()
                                         onSearch(genre.name)
                                     }
@@ -536,7 +534,6 @@ fun SearchScreen(
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 Text(artist, style = MaterialTheme.typography.headlineSmall)
                 TextButton(onClick = {
-                    searchQuery = artist
                     selectedArtist = null
                     onSearch(artist)
                 }) { Text(labels.artistTracks) }
