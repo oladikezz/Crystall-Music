@@ -340,6 +340,40 @@ class MusicDatabaseHelper private constructor(context: Context) :
         }
     }
 
+    fun syncPlaylist(playlistId: String, newTracks: List<Track>): Pair<Int, Int> {
+        val db = writableDatabase
+        val existingTracks = getPlaylistTracks(playlistId)
+        val existingIds = existingTracks.map { it.id }.toSet()
+        val uniqueNewTracks = newTracks.distinctBy { it.id }
+        val newAddedCount = uniqueNewTracks.count { it.id !in existingIds }
+
+        db.beginTransaction()
+        try {
+            db.delete("playlist_tracks", "playlist_id = ?", arrayOf(playlistId))
+            for ((idx, track) in uniqueNewTracks.withIndex()) {
+                upsertTrack(db, track)
+                val ptCv = ContentValues().apply {
+                    put("playlist_id", playlistId)
+                    put("track_id", track.id)
+                    put("position", idx)
+                }
+                db.insertWithOnConflict("playlist_tracks", null, ptCv, SQLiteDatabase.CONFLICT_REPLACE)
+            }
+            val pCv = ContentValues().apply {
+                put("track_count", uniqueNewTracks.size)
+                val firstCover = uniqueNewTracks.firstOrNull()?.coverUrl
+                if (!firstCover.isNullOrBlank()) {
+                    put("cover_url", firstCover)
+                }
+            }
+            db.update("playlists", pCv, "id = ?", arrayOf(playlistId))
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return Pair(newAddedCount, uniqueNewTracks.size)
+    }
+
     fun getAllPlaylists(): List<Playlist> {
         val db = readableDatabase
         val cursor = db.query("playlists", null, null, null, null, null, "created_at DESC")

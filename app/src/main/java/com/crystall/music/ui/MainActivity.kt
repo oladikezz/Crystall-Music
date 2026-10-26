@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -128,6 +130,14 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val isEconomyMode by viewModel.isEconomyMode.collectAsStateWithLifecycle()
     val dislikedTrackIds by viewModel.dislikedTrackIds.collectAsStateWithLifecycle()
     val relatedTracks by viewModel.relatedTracks.collectAsStateWithLifecycle()
+    val isSyncingPlaylist by viewModel.isSyncingPlaylist.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.syncMessage.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val playerManager = viewModel.playerManager
     val currentTrack by playerManager.currentTrack.collectAsStateWithLifecycle()
@@ -436,6 +446,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 isPlaying = isPlaying,
                 downloadStates = downloadStates,
                 favoriteIds = favoriteIds,
+                isSyncing = isSyncingPlaylist,
+                onSyncPlaylist = { pl -> viewModel.syncPlaylist(pl) },
                 onDismiss = { viewModel.closePlaylistDetail() },
                 onTrackClick = { track, q ->
                     playerManager.playTrack(track, q)

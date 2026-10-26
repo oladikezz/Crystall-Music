@@ -1,6 +1,8 @@
 package com.crystall.music.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,6 +48,8 @@ fun PlaylistDetailSheet(
     onDownloadClick: (Track) -> Unit,
     onFavoriteClick: (Track) -> Unit,
     onDownloadAll: (List<Track>) -> Unit,
+    isSyncing: Boolean = false,
+    onSyncPlaylist: (Playlist) -> Unit = {},
     onRenamePlaylist: (String) -> Unit = {},
     onRemoveTrack: (Track) -> Unit = {}
 ) {
@@ -53,6 +57,7 @@ fun PlaylistDetailSheet(
     val labels = uiEnhancementStrings(LocalAppLanguage.current)
     var showRenameDialog by remember { mutableStateOf(false) }
     var playlistName by remember(playlist.id, playlist.title) { mutableStateOf(playlist.title) }
+    val canSync = playlist.sourceUrl != null || playlist.id.startsWith("PL") || playlist.id.startsWith("VL") || playlist.id.startsWith("OLAK5uy_") || playlist.isImported
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -119,6 +124,27 @@ fun PlaylistDetailSheet(
                         maxLines = 1
                     )
                 }
+                if (canSync) {
+                    IconButton(
+                        onClick = { onSyncPlaylist(playlist) },
+                        enabled = !isSyncing,
+                        modifier = Modifier.semantics { contentDescription = "Синхронизировать плейлист с YouTube Music" }
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = YouTubeRed
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Sync,
+                                contentDescription = null,
+                                tint = YouTubeRed
+                            )
+                        }
+                    }
+                }
                 IconButton(
                     onClick = {
                         playlistName = playlist.title
@@ -132,9 +158,11 @@ fun PlaylistDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action Buttons: Play All & Download All (Clean Light Pills)
+            // Action Buttons: Play All, Download All & Sync
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
@@ -144,7 +172,6 @@ fun PlaylistDetailSheet(
                         }
                     },
                     shape = RoundedCornerShape(999.dp),
-                    modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = LightTextPrimary,
                         contentColor = Color.White
@@ -158,7 +185,6 @@ fun PlaylistDetailSheet(
                 Button(
                     onClick = { onDownloadAll(tracks) },
                     shape = RoundedCornerShape(999.dp),
-                    modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = LightSurfaceElevated,
                         contentColor = LightTextPrimary
@@ -167,6 +193,26 @@ fun PlaylistDetailSheet(
                     Icon(Icons.Default.DownloadForOffline, contentDescription = null, modifier = Modifier.size(18.dp), tint = LightTextPrimary)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(strings.importDownloadAll, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+
+                if (canSync) {
+                    Button(
+                        onClick = { onSyncPlaylist(playlist) },
+                        enabled = !isSyncing,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = LightSurfaceElevated,
+                            contentColor = LightTextPrimary
+                        )
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = LightTextPrimary)
+                        } else {
+                            Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp), tint = YouTubeRed)
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isSyncing) "Синхронизация..." else "Синхронизировать", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
                 }
             }
 

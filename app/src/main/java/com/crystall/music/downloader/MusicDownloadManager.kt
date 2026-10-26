@@ -311,7 +311,7 @@ class MusicDownloadManager internal constructor(private val context: Context) {
             dbHelper.insertOrUpdateTrack(track)
             val streamUrl = when (track.source) {
                 AudioSource.SOUNDCLOUD -> SoundCloudEngine.getDownloadUrl(track)
-                else -> if (!track.localPath.isNullOrBlank()) {
+                else -> if (!track.localPath.isNullOrBlank() && (track.localPath.startsWith("http://") || track.localPath.startsWith("https://"))) {
                     track.localPath
                 } else {
                     YouTubeEngine.getAudioStreamUrl(track.id, dbHelper.isEconomyMode())

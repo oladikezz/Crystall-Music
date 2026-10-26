@@ -1,5 +1,7 @@
 package com.crystall.music.player
 
+import java.io.File
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -260,6 +262,33 @@ class MusicPlayerManager private constructor(private val context: Context) {
         } catch (_: Exception) {}
     }
 
+    fun getLocalFileForTrack(track: Track): File? {
+        if (!track.localPath.isNullOrBlank() && !track.localPath.startsWith("http://") && !track.localPath.startsWith("https://")) {
+            val f = File(track.localPath)
+            if (f.exists() && f.length() > 0) return f
+        }
+        val dbTrack = dbHelper.getTrack(track.id)
+        if (dbTrack != null && !dbTrack.localPath.isNullOrBlank() && !dbTrack.localPath.startsWith("http://") && !dbTrack.localPath.startsWith("https://")) {
+            val f = File(dbTrack.localPath)
+            if (f.exists() && f.length() > 0) return f
+        }
+        val safeId = track.id.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+        val possibleDirs = listOfNotNull(
+            context.getExternalFilesDir(android.os.Environment.DIRECTORY_MUSIC),
+            File(context.filesDir, "music")
+        )
+        for (dir in possibleDirs) {
+            for (ext in listOf("m4a", "webm", "mp3")) {
+                val f = File(dir, "$safeId.$ext")
+                if (f.exists() && f.length() > 0) {
+                    dbHelper.markTrackDownloaded(track.id, f.absolutePath)
+                    return f
+                }
+            }
+        }
+        return null
+    }
+
     fun playTrack(track: Track, newQueue: List<Track>? = null, startPositionMs: Long = 0L) {
         if (released) return
 
@@ -286,23 +315,25 @@ class MusicPlayerManager private constructor(private val context: Context) {
         acquireWakeLocks(45000L)
         startPlaybackService()
 
-        // Auto-populate radio queue if queue is very short (e.g. single tapped track)
-        if (_isEndlessRadioEnabled.value && _queue.value.size <= 2) {
+        // Auto-populate radio queue if queue is very short and track is online
+        val isOffline = getLocalFileForTrack(track) != null
+        if (!isOffline && _isEndlessRadioEnabled.value && _queue.value.size <= 2) {
             autoPopulateRadioQueue(track)
         }
 
         playJob?.cancel()
         playJob = scope.launch {
             try {
-                var playableUri: String? = track.localPath
-                if (playableUri.isNullOrBlank()) {
-                    val dbTrack = dbHelper.getTrack(track.id)
-                    if (dbTrack?.isDownloaded == true && !dbTrack.localPath.isNullOrBlank()) {
-                        playableUri = dbTrack.localPath
-                    } else {
-                        // Check preloaded cache first for instant 0ms playback!
-                        playableUri = preloadedStreamUrls[track.id] ?: UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
-                    }
+                val localFile = getLocalFileForTrack(track)
+                val isLocalTrack = localFile != null
+                var playableUri: String? = null
+
+                if (localFile != null) {
+                    playableUri = Uri.fromFile(localFile).toString()
+                } else if (!track.localPath.isNullOrBlank() && (track.localPath.startsWith("http://") || track.localPath.startsWith("https://"))) {
+                    playableUri = track.localPath
+                } else {
+                    playableUri = preloadedStreamUrls[track.id] ?: UniversalMusicResolver.getStreamUrlForTrack(track, _isEconomyMode.value)
                 }
 
                 if (_currentTrack.value?.id != track.id) return@launch
@@ -322,9 +353,9 @@ class MusicPlayerManager private constructor(private val context: Context) {
                     YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, _isEconomyMode.value)
                 } else null
 
-                // Load lightweight artwork bytes for lock screen display (under 12KB)
+                // Load lightweight artwork bytes only for online streams (never block offline playback)
                 var artworkBytes: ByteArray? = null
-                if (!artworkUrl.isNullOrBlank()) {
+                if (!artworkUrl.isNullOrBlank() && !isLocalTrack) {
                     try {
                         val imageLoader = coil.ImageLoader(context)
                         val request = coil.request.ImageRequest.Builder(context)
@@ -409,7 +440,7 @@ class MusicPlayerManager private constructor(private val context: Context) {
                 val idx = q.indexOfFirst { it.id == cur.id }
                 if (idx != -1 && idx + 1 < q.size) {
                     val nextTrack = q[idx + 1]
-                    if (!preloadedStreamUrls.containsKey(nextTrack.id)) {
+                    if (getLocalFileForTrack(nextTrack) == null && !preloadedStreamUrls.containsKey(nextTrack.id)) {
                         val streamUrl = UniversalMusicResolver.getStreamUrlForTrack(nextTrack, _isEconomyMode.value)
                         if (!streamUrl.isNullOrBlank()) {
                             preloadedStreamUrls[nextTrack.id] = streamUrl

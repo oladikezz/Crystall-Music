@@ -21,6 +21,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -85,6 +88,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedPlaylistTracks = MutableStateFlow<List<Track>>(emptyList())
     val selectedPlaylistTracks: StateFlow<List<Track>> = _selectedPlaylistTracks.asStateFlow()
+
+    private val _isSyncingPlaylist = MutableStateFlow(false)
+    val isSyncingPlaylist: StateFlow<Boolean> = _isSyncingPlaylist.asStateFlow()
+
+    private val _syncMessage = MutableSharedFlow<String>()
+    val syncMessage: SharedFlow<String> = _syncMessage.asSharedFlow()
 
     private val _selectedMood = MutableStateFlow("Все")
     val selectedMood: StateFlow<String> = _selectedMood.asStateFlow()
@@ -355,5 +364,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun handleSharedUrl(url: String) {
         setTab(2) // Switch to Import tab
         resolveUrl(url)
+    }
+
+    fun syncPlaylist(playlist: Playlist) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isSyncingPlaylist.value = true
+            try {
+                val syncTarget = playlist.sourceUrl
+                    ?: if (playlist.id.startsWith("PL") || playlist.id.startsWith("VL") || playlist.id.startsWith("OLAK5uy_")) {
+                        "https://music.youtube.com/playlist?list=${playlist.id}"
+                    } else null
+
+                if (syncTarget.isNullOrBlank()) {
+                    _syncMessage.emit("Не найден источник плейлиста для синхронизации")
+                    return@launch
+                }
+
+                val resolveResult = UniversalMusicResolver.resolve(syncTarget)
+                if (resolveResult is ResolveResult.PlaylistResult) {
+                    val (newAdded, total) = dbHelper.syncPlaylist(playlist.id, resolveResult.tracks)
+                    val updatedTracks = dbHelper.getPlaylistTracks(playlist.id)
+                    val updatedPlaylists = dbHelper.getAllPlaylists()
+                    val currentSelected = updatedPlaylists.firstOrNull { it.id == playlist.id } ?: playlist
+
+                    _selectedPlaylist.value = currentSelected
+                    _selectedPlaylistTracks.value = updatedTracks
+                    refreshLibraryData()
+
+                    val msg = if (newAdded > 0) {
+                        "Синхронизировано: добавлено новых треков: $newAdded (всего: $total)"
+                    } else {
+                        "Плейлист актуален (всего треков: $total)"
+                    }
+                    _syncMessage.emit(msg)
+                } else if (resolveResult is ResolveResult.Error) {
+                    _syncMessage.emit("Ошибка: ${resolveResult.message}")
+                } else {
+                    _syncMessage.emit("Не удалось получить треки из YouTube Music")
+                }
+            } catch (e: Exception) {
+                _syncMessage.emit("Ошибка сети при синхронизации")
+            } finally {
+                _isSyncingPlaylist.value = false
+            }
+        }
     }
 }
