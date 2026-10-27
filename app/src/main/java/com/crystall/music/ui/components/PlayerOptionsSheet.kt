@@ -14,6 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +34,7 @@ import com.crystall.music.ui.theme.*
 /**
  * YouTube Music Clean Light Options Sheet
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerOptionsSheet(
     sleepTimerRemainingMs: Long?,
@@ -51,47 +56,27 @@ fun PlayerOptionsSheet(
     val currentLang = LocalAppLanguage.current
     val extra = com.crystall.music.ui.i18n.searchStrings(currentLang)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f))
-            .clickable(onClick = onDismiss),
-        contentAlignment = Alignment.BottomCenter
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = LightSurface,
+        dragHandle = {
+            Surface(
+                modifier = Modifier.padding(vertical = 10.dp),
+                color = Color(0xFFD1D5DB),
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Box(modifier = Modifier.size(width = 38.dp, height = 4.dp))
+            }
+        }
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = false) {}
-                .shadow(
-                    elevation = 24.dp,
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    spotColor = Color(0x30000000)
-                )
-                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(LightSurface)
-                .border(
-                    width = 1.dp,
-                    color = LightBorder,
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                )
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-                    .navigationBarsPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Drag handle
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFD1D5DB))
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
 
                 onHideArtist?.let { hideArtist ->
                     TextButton(onClick = hideArtist) { Text(extra.lessArtist) }
@@ -532,4 +517,3 @@ fun PlayerOptionsSheet(
             }
         }
     }
-}

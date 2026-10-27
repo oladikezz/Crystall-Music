@@ -178,7 +178,7 @@ fun SearchScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filterOptions) { (key, label) ->
+                items(filterOptions, key = { it.first }) { (key, label) ->
                     val isSelected = selectedFilter == key
                     Box(
                         modifier = Modifier
@@ -267,7 +267,7 @@ fun SearchScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
                         ) {
-                            items(searchSuggestions) { tag ->
+                            items(searchSuggestions, key = { it }) { tag ->
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(999.dp))
@@ -305,7 +305,7 @@ fun SearchScreen(
 
                 // 2-Column Exploration Cards Grid
                 val chunkedGenres = exploreGenres.chunked(2)
-                items(chunkedGenres) { pair ->
+                items(chunkedGenres, key = { it.firstOrNull()?.name ?: it.hashCode() }) { pair ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -492,7 +492,7 @@ fun SearchScreen(
                     }
 
                     val remainingTracks = searchResults.drop(1)
-                    items(remainingTracks) { track ->
+                    items(remainingTracks, key = { it.id }) { track ->
                         TrackItem(
                             track = track,
                             isCurrentTrack = currentTrack?.id == track.id,
@@ -514,7 +514,7 @@ fun SearchScreen(
                         )
                     }
                 } else {
-                    items(displayedTracks) { track ->
+                    items(displayedTracks, key = { it.id }) { track ->
                         TrackItem(
                             track = track,
                             isCurrentTrack = currentTrack?.id == track.id,

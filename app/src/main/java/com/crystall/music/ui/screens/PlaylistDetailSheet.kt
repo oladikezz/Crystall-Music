@@ -224,7 +224,7 @@ fun PlaylistDetailSheet(
                     .heightIn(max = 420.dp),
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                items(tracks) { track ->
+                items(tracks, key = { it.id }) { track ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f)) {
                             TrackItem(

@@ -1,14 +1,18 @@
-﻿package com.crystall.music
+package com.crystall.music
 
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.crystall.music.downloader.MusicDownloadManager
 import com.crystall.music.player.MusicPlayerManager
 
-class CrystallApp : Application() {
+class CrystallApp : Application(), ImageLoaderFactory {
 
     companion object {
         const val PLAYBACK_CHANNEL_ID = "playback_channel"
@@ -21,6 +25,24 @@ class CrystallApp : Application() {
         // Pre-initialize singletons
         MusicPlayerManager.getInstance(this)
         MusicDownloadManager.getInstance(this)
+    }
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.25)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(150L * 1024 * 1024)
+                    .build()
+            }
+            .respectCacheHeaders(false)
+            .crossfade(true)
+            .build()
     }
 
     private fun createNotificationChannels() {

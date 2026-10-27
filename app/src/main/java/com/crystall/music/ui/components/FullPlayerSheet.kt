@@ -7,6 +7,9 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -93,9 +96,17 @@ fun FullPlayerSheet(
         YouTubeEngine.upgradeThumbnailUrl(track.coverUrl, isEconomyMode)
     }
 
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetY by animateFloatAsState(
+        targetValue = dragOffsetY,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+        label = "player_drag_y"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .offset { IntOffset(0, animatedOffsetY.roundToInt().coerceAtLeast(0)) }
             .background(LightBackground)
     ) {
         Column(
@@ -103,14 +114,40 @@ fun FullPlayerSheet(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
+                .padding(horizontal = 20.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Top Bar: Down Arrow, Song/Video Toggle, Options Menu
+            // Drag handle pill
+            Box(
+                modifier = Modifier
+                    .padding(top = 2.dp, bottom = 6.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFD1D5DB))
+            )
+
+            // 1. Top Bar: Down Arrow, Song/Video Toggle, Options Menu with drag-down-to-dismiss
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 4.dp)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                if (dragOffsetY > 120f) {
+                                    onDismiss()
+                                }
+                                dragOffsetY = 0f
+                            },
+                            onDragCancel = { dragOffsetY = 0f },
+                            onVerticalDrag = { _, dragAmount ->
+                                if (dragAmount > 0 || dragOffsetY > 0) {
+                                    dragOffsetY = (dragOffsetY + dragAmount).coerceAtLeast(0f)
+                                }
+                            }
+                        )
+                    },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -912,7 +949,7 @@ fun FullPlayerSheet(
                                             modifier = Modifier.padding(bottom = 6.dp)
                                         )
                                     }
-                                    items(relatedTracks) { rTrack ->
+                                    items(relatedTracks, key = { it.id }) { rTrack ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()

@@ -15,6 +15,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -142,18 +143,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val playerManager = viewModel.playerManager
     val currentTrack by playerManager.currentTrack.collectAsStateWithLifecycle()
     val isPlaying by playerManager.isPlaying.collectAsStateWithLifecycle()
-    val isBuffering by playerManager.isBuffering.collectAsStateWithLifecycle()
-    val currentPosition by playerManager.currentPosition.collectAsStateWithLifecycle()
-    val duration by playerManager.duration.collectAsStateWithLifecycle()
-    val queue by playerManager.queue.collectAsStateWithLifecycle()
-    val isShuffle by playerManager.isShuffle.collectAsStateWithLifecycle()
-    val repeatMode by playerManager.repeatMode.collectAsStateWithLifecycle()
     val sleepTimerRemainingMs by playerManager.sleepTimerRemainingMs.collectAsStateWithLifecycle()
     val isSleepTimerEndOfTrack by playerManager.isSleepTimerEndOfTrack.collectAsStateWithLifecycle()
     val isEndlessRadioEnabled by playerManager.isEndlessRadioEnabled.collectAsStateWithLifecycle()
     val playbackSpeed by playerManager.playbackSpeed.collectAsStateWithLifecycle()
-
-    var isSplashVisible by remember { mutableStateOf(true) }
     var showPlayerOptions by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
@@ -162,12 +155,14 @@ fun MainAppScreen(viewModel: MainViewModel) {
     var wifiOnlyDownloads by remember { mutableStateOf(viewModel.downloadManager.isWifiOnlyDownloads()) }
     var offlineStorage by remember { mutableStateOf<DownloadStorageSummary?>(null) }
     var downloadQueueTracks by remember { mutableStateOf<List<com.crystall.music.data.model.Track>>(emptyList()) }
-    LaunchedEffect(downloadStates, downloadedTracks) {
-        val snapshot = withContext(Dispatchers.IO) {
-            viewModel.downloadManager.getStorageSummary() to viewModel.downloadManager.getRecoverableDownloads()
+    LaunchedEffect(currentTab, downloadedTracks) {
+        if (currentTab == 3) {
+            val snapshot = withContext(Dispatchers.IO) {
+                viewModel.downloadManager.getStorageSummary() to viewModel.downloadManager.getRecoverableDownloads()
+            }
+            offlineStorage = snapshot.first
+            downloadQueueTracks = snapshot.second
         }
-        offlineStorage = snapshot.first
-        downloadQueueTracks = snapshot.second
     }
 
     // Android System Back Button Handler
@@ -311,28 +306,14 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // Mini Player if a track is active and full player is not open
-            AnimatedVisibility(
-                visible = currentTrack != null && !isFullPlayerVisible,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-            ) {
-                currentTrack?.let { track ->
-                    MiniPlayer(
-                        track = track,
-                        isPlaying = isPlaying,
-                        isBuffering = isBuffering,
-                        positionMs = currentPosition,
-                        durationMs = duration,
-                        isFavorite = favoriteIds.contains(track.id),
-                        onPlayerClick = { viewModel.showFullPlayer() },
-                        onPlayPauseClick = { playerManager.togglePlayPause() },
-                        onNextClick = { playerManager.skipNext() },
-                        onFavoriteClick = { viewModel.toggleFavorite(track) },
-                        onCloseClick = { playerManager.stopAndClear() }
-                    )
-                }
-            }
+            // Mini Player (Isolated from root recompositions)
+            MiniPlayerSection(
+                playerManager = playerManager,
+                isFullPlayerVisible = isFullPlayerVisible,
+                favoriteIds = favoriteIds,
+                onPlayerClick = { viewModel.showFullPlayer() },
+                onFavoriteClick = { viewModel.toggleFavorite(it) }
+            )
 
             // Clean Pure White Docked Bottom Navigation Bar
             Surface(
@@ -387,55 +368,16 @@ fun MainAppScreen(viewModel: MainViewModel) {
             }
         }
 
-        // Full Player Modal Screen
-        val lastTrack = remember { mutableStateOf(currentTrack) }
-        if (currentTrack != null) lastTrack.value = currentTrack
-
-        AnimatedVisibility(
-            visible = isFullPlayerVisible && currentTrack != null,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-        ) {
-            val track = lastTrack.value ?: return@AnimatedVisibility
-            FullPlayerSheet(
-                track = track,
-                isPlaying = isPlaying,
-                isBuffering = isBuffering,
-                positionMs = currentPosition,
-                durationMs = duration,
-                isFavorite = favoriteIds.contains(track.id),
-                isDisliked = dislikedTrackIds.contains(track.id),
-                isShuffle = isShuffle,
-                repeatMode = repeatMode,
-                queue = queue,
-                downloadProgress = downloadStates[track.id],
-                lyricsResult = currentLyrics,
-                isLoadingLyrics = isLoadingLyrics,
-                relatedTracks = relatedTracks,
-                sleepTimerRemainingMs = sleepTimerRemainingMs,
-                isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
-                isEndlessRadioEnabled = isEndlessRadioEnabled,
-                isEconomyMode = isEconomyMode,
-                onToggleEconomyMode = { viewModel.toggleEconomyMode() },
-                onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
-                onOpenPlayerOptions = { showPlayerOptions = true },
-                onDismiss = { viewModel.hideFullPlayer() },
-                onPlayPauseClick = { playerManager.togglePlayPause() },
-                onNextClick = { playerManager.skipNext() },
-                onPreviousClick = { playerManager.skipPrevious() },
-                onSeekTo = { pos -> playerManager.seekTo(pos) },
-                onFavoriteClick = { viewModel.toggleFavorite(track) },
-                onDislikeClick = { viewModel.toggleDislike(track) },
-                onShuffleClick = { playerManager.toggleShuffle() },
-                onRepeatClick = { playerManager.cycleRepeatMode() },
-                onDownloadClick = { viewModel.downloadTrack(track) },
-                onQueueTrackClick = { qTrack -> playerManager.playTrack(qTrack) },
-                onStopPlayback = {
-                    playerManager.stopAndClear()
-                    viewModel.hideFullPlayer()
-                }
-            )
-        }
+        // Full Player Modal Screen (Isolated from root recompositions with smooth spring physics)
+        FullPlayerModalSection(
+            viewModel = viewModel,
+            playerManager = playerManager,
+            isFullPlayerVisible = isFullPlayerVisible,
+            favoriteIds = favoriteIds,
+            dislikedTrackIds = dislikedTrackIds,
+            onOpenPlayerOptions = { showPlayerOptions = true },
+            onDismiss = { viewModel.hideFullPlayer() }
+        )
 
         // Playlist Detail Bottom Sheet
         if (selectedPlaylist != null) {
@@ -475,12 +417,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
             )
         }
 
-        // Player Options Modal Sheet (Sleep Timer, Playback Speed, Endless Radio, Data Saver)
-        AnimatedVisibility(
-            visible = showPlayerOptions,
-            enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(200)),
-            exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(200))
-        ) {
+        // Player Options Modal Sheet (Native smooth bottom sheet)
+        if (showPlayerOptions) {
             PlayerOptionsSheet(
                 sleepTimerRemainingMs = sleepTimerRemainingMs,
                 isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
@@ -546,15 +484,133 @@ fun MainAppScreen(viewModel: MainViewModel) {
             )
         }
 
-        // Animated Launch / Splash Screen
-        AnimatedVisibility(
-            visible = isSplashVisible,
-            enter = fadeIn(),
-            exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(400))
-        ) {
-            SplashScreen(
-                onFinished = { isSplashVisible = false }
+
+    }
+}
+
+@Composable
+private fun MiniPlayerSection(
+    playerManager: com.crystall.music.player.MusicPlayerManager,
+    isFullPlayerVisible: Boolean,
+    favoriteIds: Set<String>,
+    onPlayerClick: () -> Unit,
+    onFavoriteClick: (com.crystall.music.data.model.Track) -> Unit
+) {
+    val currentTrack by playerManager.currentTrack.collectAsStateWithLifecycle()
+    AnimatedVisibility(
+        visible = currentTrack != null && !isFullPlayerVisible,
+        enter = slideInVertically(
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+            initialOffsetY = { it }
+        ) + fadeIn(animationSpec = tween(150)),
+        exit = slideOutVertically(
+            animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioNoBouncy),
+            targetOffsetY = { it }
+        ) + fadeOut(animationSpec = tween(150))
+    ) {
+        currentTrack?.let { track ->
+            val isPlaying by playerManager.isPlaying.collectAsStateWithLifecycle()
+            val isBuffering by playerManager.isBuffering.collectAsStateWithLifecycle()
+            val currentPosition by playerManager.currentPosition.collectAsStateWithLifecycle()
+            val duration by playerManager.duration.collectAsStateWithLifecycle()
+            val isFav = remember(favoriteIds, track.id) { favoriteIds.contains(track.id) }
+
+            MiniPlayer(
+                track = track,
+                isPlaying = isPlaying,
+                isBuffering = isBuffering,
+                positionMs = currentPosition,
+                durationMs = duration,
+                isFavorite = isFav,
+                onPlayerClick = onPlayerClick,
+                onPlayPauseClick = { playerManager.togglePlayPause() },
+                onNextClick = { playerManager.skipNext() },
+                onFavoriteClick = { onFavoriteClick(track) },
+                onCloseClick = { playerManager.stopAndClear() }
             )
         }
+    }
+}
+
+@Composable
+private fun FullPlayerModalSection(
+    viewModel: MainViewModel,
+    playerManager: com.crystall.music.player.MusicPlayerManager,
+    isFullPlayerVisible: Boolean,
+    favoriteIds: Set<String>,
+    dislikedTrackIds: Set<String>,
+    onOpenPlayerOptions: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val currentTrack by playerManager.currentTrack.collectAsStateWithLifecycle()
+    val lastTrack = remember { mutableStateOf(currentTrack) }
+    if (currentTrack != null) lastTrack.value = currentTrack
+
+    AnimatedVisibility(
+        visible = isFullPlayerVisible && currentTrack != null,
+        enter = slideInVertically(
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+            initialOffsetY = { it }
+        ) + fadeIn(animationSpec = tween(150)),
+        exit = slideOutVertically(
+            animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioNoBouncy),
+            targetOffsetY = { it }
+        ) + fadeOut(animationSpec = tween(150))
+    ) {
+        val track = lastTrack.value ?: return@AnimatedVisibility
+        val isPlaying by playerManager.isPlaying.collectAsStateWithLifecycle()
+        val isBuffering by playerManager.isBuffering.collectAsStateWithLifecycle()
+        val currentPosition by playerManager.currentPosition.collectAsStateWithLifecycle()
+        val duration by playerManager.duration.collectAsStateWithLifecycle()
+        val queue by playerManager.queue.collectAsStateWithLifecycle()
+        val isShuffle by playerManager.isShuffle.collectAsStateWithLifecycle()
+        val repeatMode by playerManager.repeatMode.collectAsStateWithLifecycle()
+        val sleepTimerRemainingMs by playerManager.sleepTimerRemainingMs.collectAsStateWithLifecycle()
+        val isSleepTimerEndOfTrack by playerManager.isSleepTimerEndOfTrack.collectAsStateWithLifecycle()
+        val isEndlessRadioEnabled by playerManager.isEndlessRadioEnabled.collectAsStateWithLifecycle()
+        val isEconomyMode by viewModel.isEconomyMode.collectAsStateWithLifecycle()
+        val currentLyrics by viewModel.currentLyrics.collectAsStateWithLifecycle()
+        val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsStateWithLifecycle()
+        val relatedTracks by viewModel.relatedTracks.collectAsStateWithLifecycle()
+        val downloadStates by viewModel.downloadManager.downloadStates.collectAsStateWithLifecycle()
+
+        FullPlayerSheet(
+            track = track,
+            isPlaying = isPlaying,
+            isBuffering = isBuffering,
+            positionMs = currentPosition,
+            durationMs = duration,
+            isFavorite = favoriteIds.contains(track.id),
+            isDisliked = dislikedTrackIds.contains(track.id),
+            isShuffle = isShuffle,
+            repeatMode = repeatMode,
+            queue = queue,
+            downloadProgress = downloadStates[track.id],
+            lyricsResult = currentLyrics,
+            isLoadingLyrics = isLoadingLyrics,
+            relatedTracks = relatedTracks,
+            sleepTimerRemainingMs = sleepTimerRemainingMs,
+            isSleepTimerEndOfTrack = isSleepTimerEndOfTrack,
+            isEndlessRadioEnabled = isEndlessRadioEnabled,
+            isEconomyMode = isEconomyMode,
+            onToggleEconomyMode = { viewModel.toggleEconomyMode() },
+            onToggleEndlessRadio = { playerManager.toggleEndlessRadio() },
+            onOpenPlayerOptions = onOpenPlayerOptions,
+            onDismiss = onDismiss,
+            onPlayPauseClick = { playerManager.togglePlayPause() },
+            onNextClick = { playerManager.skipNext() },
+            onPreviousClick = { playerManager.skipPrevious() },
+            onSeekTo = { pos -> playerManager.seekTo(pos) },
+            onFavoriteClick = { viewModel.toggleFavorite(track) },
+            onDislikeClick = { viewModel.toggleDislike(track) },
+            onShuffleClick = { playerManager.toggleShuffle() },
+            onRepeatClick = { playerManager.cycleRepeatMode() },
+            onDownloadClick = { viewModel.downloadTrack(track) },
+            onQueueTrackClick = { qTrack -> playerManager.playTrack(qTrack) },
+            onStopPlayback = {
+                playerManager.stopAndClear()
+                viewModel.hideFullPlayer()
+            }
+        )
     }
 }

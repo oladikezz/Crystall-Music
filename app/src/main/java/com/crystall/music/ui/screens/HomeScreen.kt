@@ -167,7 +167,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(moodList) { (key, displayName) ->
+                items(moodList, key = { it.first }) { (key, displayName) ->
                     val isSelected = (key == selectedMood || (selectedMood == "Все" && key == "all"))
                     Box(
                         modifier = Modifier
@@ -309,7 +309,7 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(columns) { columnTracks ->
+                    items(columns, key = { col -> col.firstOrNull()?.id ?: col.hashCode() }) { columnTracks ->
                         Column(
                             modifier = Modifier.width(310.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -357,7 +357,7 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    items(recentTracks.take(10)) { track ->
+                    items(recentTracks.take(10), key = { it.id }) { track ->
                         YtAlbumCard(
                             track = track,
                             isCurrentTrack = currentTrack?.id == track.id,
@@ -474,7 +474,7 @@ fun HomeScreen(
         }
 
         // List of trending / recommendation tracks
-        items(trendingTracks) { track ->
+        items(trendingTracks, key = { it.id }) { track ->
             TrackItem(
                 track = track,
                 isCurrentTrack = currentTrack?.id == track.id,
