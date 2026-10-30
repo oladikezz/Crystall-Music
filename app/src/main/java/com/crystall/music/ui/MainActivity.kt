@@ -112,6 +112,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val favoriteTracks by viewModel.favoriteTracks.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val searchFailed by viewModel.searchFailed.collectAsStateWithLifecycle()
@@ -235,6 +236,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         isPlaying = isPlaying,
                         downloadStates = downloadStates,
                         favoriteIds = favoriteIds,
+                        searchQuery = searchQuery,
                         searchResults = searchResults,
                         isSearching = isSearching,
                         onSearch = { q -> viewModel.search(q) },
